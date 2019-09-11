@@ -1,5 +1,5 @@
 const   Mission = require('./Mission'),
-        MINIMUM_MISSIONS = 10;
+        MINIMUM_MISSIONS = 20;
 let availableMissions = [];
 
 class MissionGenerator

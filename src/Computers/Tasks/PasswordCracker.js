@@ -17,7 +17,7 @@ class PasswordCracker extends Task
     setCyclesPerTick(cyclesPerTick)
     {
         super.setCyclesPerTick(cyclesPerTick);
-        this.attacksPerTick = Math.floor(Math.pow(cyclesPerTick, 1/Math.pow(this.challenge.difficulty, 2)));
+        this.attacksPerTick = Math.floor(Math.pow(cyclesPerTick, 1/Math.pow(this.challenge.difficulty, 1.5)));
         return this;
     }
 

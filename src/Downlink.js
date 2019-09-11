@@ -47,7 +47,9 @@ class Downlink extends EventListener
         {
             this.setPlayerComputer();
         }
-        this.playerComputer.on('cpuPoolEmpty', ()=>{this.trigger('cpuPoolEmpty')});
+        this.playerComputer.on('cpuPoolEmpty', ()=>{
+            this.trigger('cpuPoolEmpty');
+        });
         return this.playerComputer;
     }
 

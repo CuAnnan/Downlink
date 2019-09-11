@@ -123,7 +123,7 @@ class EncryptionCracker extends Task
 
     get attacksPerTick()
     {
-        let attacksPerTick = this.cyclesPerTick / (this.unsolvedCells.length * this.challenge.difficulty);
+        let attacksPerTick = this.cyclesPerTick / (this.unsolvedCells.length * Math.pow(this.challenge.difficulty, 2));
         return attacksPerTick;
     }
 

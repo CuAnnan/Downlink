@@ -439,7 +439,7 @@
         },
         disconnect:function()
         {
-            if(this.mission.computer.currentPlayerConnection.active)
+            if(this.mission && this.mission.computer.currentPlayerConnection.active)
             {
                 this.downlink.disconnectFromMissionServer();
                 this.$activeMissionDisconnectButton
@@ -824,7 +824,7 @@
         {
             this.takingMissions = false;
             this.canTakeMissions = false;
-            this.updateMissionToggleButton();
+            this.disconnect();
         },
         updateMissionToggleButton()
         {
@@ -850,12 +850,20 @@
                     html += `<div class="row">
                         <div class="col">${researchItem.name}</div>
                         <div class="col-1">${researchItem.researchTicks}</div>
-                        <div class="col-3"><button data-research-item="${researchItem.name}" class="research-start-button btn btn-sm btn-primary">Start researching</button></div>
+                        <div class="col-3">
+                            <button data-research-item="${researchItem.name}" class="research-start-button btn btn-sm btn-primary" data-toggle="tooltip" data-html="true" title="<ul>`;
+                            for(let property of researchItem.propertiesEffected)
+                            {
+                                html += `<li>${property.property} &times; ${property.amount}</li>`;
+                            }
+                            html +=`</ul>">Start researching</button>
+                        </div>
                     </div>`;
                 }
                 html += `</div>`;
             }
             this.$researchModalBody.html(html);
+            $('[data-toggle="tooltip"]').tooltip();
             $('.research-start-button').click((evt)=>{
                 this.startResearch(evt.target.dataset.researchItem);
             });

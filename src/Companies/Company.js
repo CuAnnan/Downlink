@@ -16,8 +16,6 @@ class Company
     {
         this.name = name;
 
-        this.computers = [];
-
         /**
          * @type {number} the reward modifier this company offers the player
          * this is based on the accrued successful missions and the number of times the company has detected you hacking
