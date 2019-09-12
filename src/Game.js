@@ -1,12 +1,11 @@
 // This file is solely responsible for exposing the necessary parts of the game to the UI elements
 (($)=>{$(()=>{
-
     const   Downlink = require('./Downlink'),
             CPU = require('./Computers/CPU'),
             EncryptionCracker = require('./Computers/Tasks/EncryptionCracker'),
             {PasswordCracker} = require('./Computers/Tasks/PasswordCracker'),
             Decimal = require('break_infinity.js'),
-            TICK_INTERVAL_LENGTH=100,
+            TICK_INTERVAL_LENGTH=5,
             MISSION_LIST_CLASS = 'mission-list-row',
             COMPANY_REP_CLASS = 'company-rep-row',
             COMPANY_SECURITY_CLASS = 'company-security-col',
@@ -36,11 +35,11 @@
         mission:false,
         computer:null,
         downlink:null,
-        version:"0.5.0b",
+        version:"0.5.5b",
         requiresHardReset:true,
         canTakeMissions:true,
         requiresNewMission:true,
-        minimumVersion:"0.5.0b",
+        minimumVersion:"0.5.5b",
         /**
          * jquery entities that are needed for updating
          */
@@ -177,7 +176,8 @@
                     this.mapImageElement, 0, 0,
                     this.mapImageElement.width, this.mapImageElement.height
                 );
-            this.$worldMapCanvasContainer.empty().append($(canvas));
+
+            this.$worldMapCanvasContainer[0].innerHTML = canvas;
             return canvas;
         },
         /**
@@ -529,6 +529,15 @@
                 this.$connectionTracePercentage.html(0);
                 this.$connectionTraceBar.css('width', '0%');
                 this.save();
+            }).on('hackTracked',()=>{
+                this.updatePlayerDetails();
+                this.updateComputerPartsUI();
+                this.updateCompanyStates([this.mission.sponsor, this.mission.target]);
+                this.requiresNewMission = true;
+
+                this.$connectionTracePercentage.html(100);
+                this.$connectionTraceBar.css('width', '100%');
+                this.mission.off();
             }).on("connectionStepTraced", (stepsTraced)=>{
                 this.$connectionTraced.html(stepsTraced);
                 this.updateConnectionMap();

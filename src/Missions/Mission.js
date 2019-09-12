@@ -9,7 +9,8 @@ const   Company = require('../Companies/Company'),
 const MISSION_STATUSES = {
     UNDERWAY:'underway',
     AVAILABLE:'available',
-    COMPLETE:'complete'
+    COMPLETE:'complete',
+    FAILED:'failed'
 };
 
 
@@ -96,8 +97,11 @@ class Mission extends EventListener
             }).on('connectionStepTraced', (step)=>{
                 this.trigger("connectionStepTraced", step);
             }).on('hackTracked', ()=>{
-                console.log("Connection traced");
+                console.log('Connection traced');
+                this.status = MISSION_STATUSES.FAILED;
                 this.target.traceHacker();
+                this.trigger('hackTracked');
+                this.computer.disconnect();
             }).on('updateTracePercentage', (percentage)=>{
                 this.trigger('updateTracePercentage', percentage);
             });

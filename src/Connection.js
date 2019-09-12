@@ -85,6 +85,10 @@ class ConnectionStep extends EventListener
      * @returns {number}    The remaining distance after this step has been traced
      */
     traceAmount(amount) {
+        if(this.state === ConnectionStep.states.traced)
+        {
+            return 0;
+        }
         this.state = ConnectionStep.states.tracing;
         this.amountTraced += amount;
         this.traceTicks++;
@@ -122,11 +126,11 @@ class Connection extends EventListener
          */
         this.hash = '';
         /**
-         * * @type {Computer}
+         * * @type {MechanicalComputer}
          */
         this.startingPoint = null;
         /**
-         * @type {Computer}
+         * @type {MechanicalComputer}
          */
         this.endPoint = null;
         /**
@@ -237,22 +241,52 @@ class Connection extends EventListener
         this.currentStep = this.steps[0];
     }
 
+    /**
+     * A method to handle what happens when a step is traced
+     * At present this triggers its own event in turn
+     */
     stepTraced()
     {
         this.trigger("stepTraced", this.stepsTraced);
     }
 
+    /**
+     * A method to increase the abstract distance between computers in a Connection step
+     * It just delegates it to the ConnectionStep
+     * @param amount
+     */
     static improveConnectionDistance(amount)
     {
-        Connection.connectionDistance += amount;
         ConnectionStep.length += amount;
     }
 
+    /**
+     * Determine the total abstract distance of the connection
+     * @deprecated
+     * @see totalConnectionDistance
+     * @returns {number}
+     */
     get totalConnectionLength()
     {
-        return this.connectionLength * ConnectionStep.distance;
+        return this.totalConnectionDistance;
     }
 
+    /**
+     * This method returns the total distance this connection represents
+     * Distance is an abstract number representing a measure of how long it should take to trace, not a number of meters
+     * @returns {number}
+     */
+    get totalConnectionDistance()
+    {
+        return this.steps.length * ConnectionStep.distance;
+    }
+
+    /**
+     * Set the starting computer of the connection. This is treated as separate from this.computers because the player computer or mission computer
+     * may require separate behaviours and it is easier to accommodate that if they're separate
+     * @param {MechanicalComputer} startingComputer
+     * @returns {Connection}
+     */
     setStartingPoint(startingComputer)
     {
         this.startingPoint = startingComputer;
@@ -260,6 +294,12 @@ class Connection extends EventListener
         return this;
     }
 
+    /**
+     * Set the end computer of the connection. This is treated as separate from this.computers because the player computer or mission computer
+     * may require separate behaviours and it is easier to accommodate that if they're separate
+     * @param  {MechanicalComputer} endPointComputer
+     * @returns {Connection}
+     */
     setEndPoint(endPointComputer)
     {
         this.endPoint = endPointComputer;
@@ -272,16 +312,20 @@ class Connection extends EventListener
     {
         this.stepsTraced = 0;
         this.active = true;
-        return this.open();
+        return this.connectComputers();
     }
 
     reconnect()
     {
         this.active = true;
-        return this.open();
+        return this.connectComputers();
     }
 
-    open()
+    /**
+     *
+     * @returns {Connection}
+     */
+    connectComputers()
     {
         for(let computer of this.computers)
         {
@@ -324,7 +368,6 @@ class Connection extends EventListener
         }
         if(this.traced)
         {
-            this.trigger('updateTracePercentage', this.tracePercent);
             return;
         }
 
@@ -347,10 +390,10 @@ class Connection extends EventListener
 
             if(this.stepsTraced === this.steps.length)
             {
-                this.trigger('connectionTraced');
                 this.traced = true;
+                this.trigger('connectionTraced');
             }
-        }while(remainder > 0 || this.stepsTraced >= this.steps.length);
+        }while(remainder > 0 || this.stepsTraced >= this.steps.length && this.traced === false);
     }
 
     get totalAmountTraced()

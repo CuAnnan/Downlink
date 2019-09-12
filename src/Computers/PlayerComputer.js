@@ -4,7 +4,7 @@ const   {Password, DictionaryPassword, AlphanumericPassword} = require('../Missi
         Encryption = require('../Missions/Challenges/Encryption'),
         EncryptionCracker = require('./Tasks/EncryptionCracker'),
         ResearchTask = require('./Tasks/ResearchTask'),
-        Computer = require('./Computer'),
+        MechanicalComputer = require('./MechanicalComputer'),
         CPUPool = require('./CPUPool'),
         CPU = require('./CPU.js');
 
@@ -12,7 +12,7 @@ class InvalidTaskError extends Error{};
 const DEFAULT_MAX_CPUS = 4;
 
 
-class PlayerComputer extends Computer
+class PlayerComputer extends MechanicalComputer
 {
     constructor(cpus, maxCPUs)
     {
