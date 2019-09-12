@@ -235,7 +235,6 @@ class Connection extends EventListener
         this.initialised = true;
         this.steps = this.steps.reverse();
         this.currentStep = this.steps[0];
-
     }
 
     stepTraced()
