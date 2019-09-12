@@ -84,6 +84,7 @@
          * HTML DOM elements, as opposed to jQuery entities for special cases
          */
         mapImageElement:null,
+        miniMapCanvas:null,
         bindUIElements:function()
         {
             this.$missionContainer = $('#mission-list');
@@ -134,6 +135,7 @@
             $('#computerModalLink').click(()=>{this.showComputerBuildModal()});
             $('#connection-auto-build-button').click(()=>{this.autoBuildConnection()});
 
+            this.miniMapCanvas = document.getElementById('mini-world-map');
         },
         toggleMissions:function()
         {
@@ -294,9 +296,16 @@
         },
         updateConnectionMap:function()
         {
-            let connection = this.downlink.playerConnection;
-            let context = this.getFreshCanvas().getContext('2d');
-            let currentComputer = this.downlink.playerComputer;
+            let connection = this.downlink.playerConnection,
+                context = this.getFreshCanvas().getContext('2d'),
+                currentComputer = this.downlink.playerComputer,
+                mmContext = this.miniMapCanvas.getContext('2d'),
+                ratio = this.miniMapCanvas.width / context.canvas.width;
+            this.miniMapCanvas.height = context.canvas.height * ratio;
+            mmContext.drawImage(context.canvas, 0, 0, this.miniMapCanvas.width, this.miniMapCanvas.height);
+            mmContext.strokeStyle='#000';
+            mmContext.lineWidth=0.3;
+
             for(let computer of connection.computers)
             {
                 // connect the current computer to the current computer in the connection
@@ -304,9 +313,17 @@
                 context.moveTo(currentComputer.location.x, currentComputer.location.y);
                 context.lineTo(computer.location.x, computer.location.y);
                 context.stroke();
+
+                mmContext.beginPath();
+                mmContext.moveTo(currentComputer.location.x * ratio, currentComputer.location.y * ratio);
+                mmContext.lineTo(computer.location.x * ratio, computer.location.y*ratio);
+                mmContext.stroke();
+
                 // set the currentComputer to be the current computer in the connection
                 currentComputer = computer;
             }
+            // place the image in the mini map
+
         },
         start:function(){
             this.ticking = true;

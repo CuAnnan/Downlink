@@ -183,3 +183,8 @@
     overflow-y: auto;
     padding-right: 26px;
 }
+
+h2
+{
+    font-size:1.5rem;
+}
