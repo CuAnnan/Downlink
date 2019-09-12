@@ -32,6 +32,16 @@ class ConnectionStep extends EventListener
         return this;
     }
 
+    get tracePoint()
+    {
+        let ratio = 1 - (this.amountTraced / ConnectionStep.distance),
+            loc1 = this.computer1.location,
+            loc2 = this.computer2.location,
+            x = loc1.x + (loc2.x - loc1.x) * ratio,
+            y = loc1.y + (loc2.y - loc1.y) * ratio;
+        return {x:x, y:y};
+    }
+
     /**
      * This method increases the amount the connection step has been traced by
      * and returns the remaining amount that the reduction has left or null if the connection does not succeed
@@ -47,14 +57,13 @@ class ConnectionStep extends EventListener
     traceAmount(amount) {
         this.state = ConnectionStep.states.tracing;
         this.amountTraced += amount;
-        this.amountRemaining = ConnectionStep.distance - this.amountTraced;
-        this.amountRemaining = this.amountRemaining >= 0 ? this.amountRemaining : 0;
+        this.amountRemaining = Math.max(ConnectionStep.distance - this.amountTraced, 0);
         this.traceTicks++;
         if(this.amountTraced >= ConnectionStep.distance)
         {
-            this.trigger(ConnectionStep.events.stepTraced);
             let remainder = this.amountTraced - ConnectionStep.distance;
             this.state = ConnectionStep.states.traced;
+            this.trigger(ConnectionStep.events.stepTraced);
             return remainder;
         }
         return -1;

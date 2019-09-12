@@ -68,6 +68,12 @@
     background-color:dodgerblue;
 }
 
+.MissionComputer
+{
+    background-color: #ff0;
+    z-index:6;
+}
+
 
 .world-map-div
 {

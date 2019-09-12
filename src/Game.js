@@ -302,39 +302,54 @@
                 ratio = this.miniMapCanvas.width / context.canvas.width;
             this.miniMapCanvas.height = context.canvas.height * ratio;
             mmContext.drawImage(context.canvas, 0, 0, this.miniMapCanvas.width, this.miniMapCanvas.height);
-            mmContext.strokeStyle='#000';
-            mmContext.lineWidth=0.3;
+            mmContext.lineWidth = 0.4;
 
             for(let step of connection.steps)
             {
-                let loc1 = step.computer1.location,
-                    loc2 = step.computer2.location;
-                // connect the current computer to the current computer in the connection
-                context.beginPath();
-                context.moveTo(loc1.x, loc1.y);
-                context.lineTo(loc2.x, loc2.y);
-                context.stroke();
-
-                switch(step.state)
+                let colors = {
+                        'pristine':'#000',
+                        'traced':'#f00'
+                    };
+                if(step.state === 'tracing')
                 {
-                    case "pristine":
-                        mmContext.strokeStyle = '#000';
-                        break;
-                    case "tracing":
-                        mmContext.strokeStyle = '#f99';
-                        break;
-                    case "traced":
-                        mmContext.strokeStyle = '#f00';
-                        break;
+                    this.drawPartiallyTracedStep(step, context, mmContext, ratio, colors.pristine, colors.traced);
                 }
-                mmContext.beginPath();
-                mmContext.moveTo(loc1.x * ratio, loc1.y * ratio);
-                mmContext.lineTo(loc2.x * ratio, loc2.y * ratio);
-                mmContext.stroke();
-
+                else
+                {
+                    this.drawSimpleStep(step, context, mmContext, ratio, colors[step.state]);
+                }
             }
             // place the image in the mini map
 
+        },
+        drawLineOnContext:function(context, position1, position2, color, ratio)
+        {
+            ratio = ratio?ratio:1;
+            context.beginPath();
+            context.strokeStyle = color;
+            context.moveTo(position1.x * ratio, position1.y * ratio);
+            context.lineTo(position2.x * ratio, position2.y * ratio);
+            context.stroke();
+        },
+        drawPartiallyTracedStep:function(step, context, mmContext, ratio, untracedLineColor, tracedLineColor)
+        {
+            let loc1 = step.computer1.location,
+                loc2 = step.tracePoint,
+                loc3 = step.computer2.location;
+            this.drawLineOnContext(context, loc1, loc2, tracedLineColor);
+            this.drawLineOnContext(context, loc2, loc3, untracedLineColor);
+            this.drawLineOnContext(mmContext, loc1, loc2, tracedLineColor, ratio);
+            this.drawLineOnContext(mmContext, loc2, loc3, untracedLineColor, ratio);
+
+        },
+        drawSimpleStep:function(step, context, mmContext, ratio, lineColor)
+        {
+            let loc1 = step.computer1.location,
+                loc2 = step.computer2.location;
+
+                // connect the current computer to the current computer in the connection
+            this.drawLineOnContext(context, loc1, loc2, lineColor);
+            this.drawLineOnContext(mmContext, loc1, loc2, lineColor, ratio);
         },
         start:function(){
             this.ticking = true;
@@ -493,11 +508,15 @@
             this.$activeMissionServer.show();
             this.$connectionTraced.html(0);
             this.$connectionTracePercentage.html(0);
+            $('.MissionComputer').remove();
+
             this.mission = this.downlink.getNextMission();
             this.$activeMissionTraceStrength.text(this.mission.computer.traceSpeed.toFixed(2));
             this.updateMissionInterface(this.mission);
             this.requiresNewMission = false;
             this.updateConnectionMap();
+            this.addComputerToWorldMap(this.mission.computer);
+
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -516,6 +535,7 @@
             }).on("updateTracePercentage", (percentageTraced)=>{
                 this.$connectionTracePercentage.html(percentageTraced);
                 this.$connectionTraceBar.css('width', percentageTraced+'%');
+                this.updateConnectionMap();
             });
 
         },

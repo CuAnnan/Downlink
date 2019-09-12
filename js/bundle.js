@@ -3505,6 +3505,16 @@ class ConnectionStep extends EventListener
         return this;
     }
 
+    get tracePoint()
+    {
+        let ratio = 1 - (this.amountTraced / ConnectionStep.distance),
+            loc1 = this.computer1.location,
+            loc2 = this.computer2.location,
+            x = loc1.x + (loc2.x - loc1.x) * ratio,
+            y = loc1.y + (loc2.y - loc1.y) * ratio;
+        return {x:x, y:y};
+    }
+
     /**
      * This method increases the amount the connection step has been traced by
      * and returns the remaining amount that the reduction has left or null if the connection does not succeed
@@ -3520,14 +3530,13 @@ class ConnectionStep extends EventListener
     traceAmount(amount) {
         this.state = ConnectionStep.states.tracing;
         this.amountTraced += amount;
-        this.amountRemaining = ConnectionStep.distance - this.amountTraced;
-        this.amountRemaining = this.amountRemaining >= 0 ? this.amountRemaining : 0;
+        this.amountRemaining = Math.max(ConnectionStep.distance - this.amountTraced, 0);
         this.traceTicks++;
         if(this.amountTraced >= ConnectionStep.distance)
         {
-            this.trigger(ConnectionStep.events.stepTraced);
             let remainder = this.amountTraced - ConnectionStep.distance;
             this.state = ConnectionStep.states.traced;
+            this.trigger(ConnectionStep.events.stepTraced);
             return remainder;
         }
         return -1;
@@ -3591,11 +3600,6 @@ class Connection extends EventListener
          * @type {number}
          */
         this.stepsTraced = 0;
-        /**
-         * The total length of the connection that has been traced
-         * @type {number}
-         */
-        this.amountTraced = 0;
         /**
          * The number of ticks that we have been tracing.
          * @type {number}
@@ -3673,7 +3677,6 @@ class Connection extends EventListener
         }
         // set initialised to true
         this.initialised = true;
-        this.stepsRemaining = this.steps.length;
         this.steps = this.steps.reverse();
         this.currentStep = this.steps[0];
 
@@ -3713,7 +3716,6 @@ class Connection extends EventListener
     connect()
     {
         this.stepsTraced = 0;
-        this.amountTraced = 0;
         this.active = true;
         return this.open();
     }
@@ -3771,7 +3773,6 @@ class Connection extends EventListener
             return;
         }
 
-        this.amountTraced += stepTraceAmount;
         this.traceTicks++;
         if(this.traceTicks % Connection.sensitivity === 0)
         {
@@ -3799,8 +3800,7 @@ class Connection extends EventListener
 
     get totalAmountTraced()
     {
-        let traceAmount = (this.stepsTraced * ConnectionStep.distance) + this.currentStep.amountTraced;
-        return traceAmount;
+        return (this.stepsTraced * ConnectionStep.distance) + this.currentStep.amountTraced;
     }
 
     close()
@@ -4735,39 +4735,55 @@ module.exports = EventListener;
                 ratio = this.miniMapCanvas.width / context.canvas.width;
             this.miniMapCanvas.height = context.canvas.height * ratio;
             mmContext.drawImage(context.canvas, 0, 0, this.miniMapCanvas.width, this.miniMapCanvas.height);
-            mmContext.strokeStyle='#000';
-            mmContext.lineWidth=0.3;
+            mmContext.lineWidth = 0.4;
 
             for(let step of connection.steps)
             {
-                let loc1 = step.computer1.location,
-                    loc2 = step.computer2.location;
-                // connect the current computer to the current computer in the connection
-                context.beginPath();
-                context.moveTo(loc1.x, loc1.y);
-                context.lineTo(loc2.x, loc2.y);
-                context.stroke();
-
-                switch(step.state)
+                let colors = {
+                        'pristine':'#000',
+                        'traced':'#f00'
+                    };
+                if(step.state === 'tracing')
                 {
-                    case "pristine":
-                        mmContext.strokeStyle = '#000';
-                        break;
-                    case "tracing":
-                        mmContext.strokeStyle = '#f99';
-                        break;
-                    case "traced":
-                        mmContext.strokeStyle = '#f00';
-                        break;
+                    this.drawPartiallyTracedStep(step, context, mmContext, ratio, colors.pristine, colors.traced);
                 }
-                mmContext.beginPath();
-                mmContext.moveTo(loc1.x * ratio, loc1.y * ratio);
-                mmContext.lineTo(loc2.x * ratio, loc2.y * ratio);
-                mmContext.stroke();
-
+                else
+                {
+                    this.drawSimpleStep(step, context, mmContext, ratio, colors[step.state]);
+                }
             }
             // place the image in the mini map
 
+        },
+        drawLineOnContext:function(context, position1, position2, color, ratio)
+        {
+            ratio = ratio?ratio:1;
+            context.beginPath();
+            context.strokeStyle = color;
+            context.moveTo(position1.x * ratio, position1.y * ratio);
+            context.lineTo(position2.x * ratio, position2.y * ratio);
+            context.stroke();
+        },
+        drawPartiallyTracedStep:function(step, context, mmContext, ratio, untracedLineColor, tracedLineColor)
+        {
+            let loc1 = step.computer1.location,
+                loc2 = step.tracePoint,
+                loc3 = step.computer2.location;
+            console.log(loc1, loc2, loc3);
+            this.drawLineOnContext(context, loc1, loc2, tracedLineColor);
+            this.drawLineOnContext(context, loc2, loc3, untracedLineColor);
+            this.drawLineOnContext(mmContext, loc1, loc2, tracedLineColor, ratio);
+            this.drawLineOnContext(mmContext, loc2, loc3, untracedLineColor, ratio);
+
+        },
+        drawSimpleStep:function(step, context, mmContext, ratio, lineColor)
+        {
+            let loc1 = step.computer1.location,
+                loc2 = step.computer2.location;
+
+                // connect the current computer to the current computer in the connection
+            this.drawLineOnContext(context, loc1, loc2, lineColor);
+            this.drawLineOnContext(mmContext, loc1, loc2, lineColor, ratio);
         },
         start:function(){
             this.ticking = true;
@@ -4926,11 +4942,15 @@ module.exports = EventListener;
             this.$activeMissionServer.show();
             this.$connectionTraced.html(0);
             this.$connectionTracePercentage.html(0);
+            $('.MissionComputer').remove();
+
             this.mission = this.downlink.getNextMission();
             this.$activeMissionTraceStrength.text(this.mission.computer.traceSpeed.toFixed(2));
             this.updateMissionInterface(this.mission);
             this.requiresNewMission = false;
             this.updateConnectionMap();
+            this.addComputerToWorldMap(this.mission.computer);
+
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -4949,6 +4969,7 @@ module.exports = EventListener;
             }).on("updateTracePercentage", (percentageTraced)=>{
                 this.$connectionTracePercentage.html(percentageTraced);
                 this.$connectionTraceBar.css('width', percentageTraced+'%');
+                this.updateConnectionMap();
             });
 
         },
