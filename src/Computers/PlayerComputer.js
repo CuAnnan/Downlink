@@ -87,6 +87,11 @@ class PlayerComputer extends MechanicalComputer
         return task;
     }
 
+    clearMissionTasks()
+    {
+        this.cpuPool.removeTasks(this.missionTasks);
+    }
+
     addTaskForChallenge(challenge)
     {
         let task = this.getTaskForChallenge(challenge);

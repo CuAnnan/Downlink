@@ -1871,7 +1871,7 @@ class Alphabet
     {
         return [...alphabetGrid];
     }
-};
+}
 
 Alphabet.build();
 
@@ -2083,9 +2083,9 @@ const   Task = require('./Tasks/Task'),
         Upgradeable = require('../Upgradeable'),
         cpus = require('./cpus');
 
-class CPUFullError extends Error{};
-class CPUDuplicateTaskError extends Error{};
-class InvalidTaskError extends Error{};
+class CPUFullError extends Error{}
+class CPUDuplicateTaskError extends Error{}
+class InvalidTaskError extends Error{}
 
 const CPU_COST_MODIFIER = 4000;
 
@@ -2408,6 +2408,15 @@ class CPUPool extends EventListener
         this.trigger('taskComplete');
     }
 
+    removeTasks(tasks)
+    {
+        for(let task of tasks)
+        {
+            helpers.removeArrayElement(this.tasks, task);
+            delete this.tasksByHash[task.hash];
+        }
+    }
+
     get availableCycles()
     {
         return this.totalSpeed - this.load;
@@ -2676,7 +2685,7 @@ const   {Password, DictionaryPassword, AlphanumericPassword} = require('../Missi
         CPUPool = require('./CPUPool'),
         CPU = require('./CPU.js');
 
-class InvalidTaskError extends Error{};
+class InvalidTaskError extends Error{}
 const DEFAULT_MAX_CPUS = 4;
 
 
@@ -2753,6 +2762,11 @@ class PlayerComputer extends MechanicalComputer
 
 
         return task;
+    }
+
+    clearMissionTasks()
+    {
+        this.cpuPool.removeTasks(this.missionTasks);
     }
 
     addTaskForChallenge(challenge)
@@ -4073,11 +4087,15 @@ class Downlink extends EventListener
             return null;
         }
 
-        this.activeMission = MissionGenerator.getFirstAvailableMission().on("complete", ()=>{
-            this.finishCurrentMission(this.activeMission);
-            this.activeMission = null;
-            this.trigger('missionComplete');
-        });
+        this.activeMission = MissionGenerator.getFirstAvailableMission()
+            .on("complete", ()=>{
+                this.finishCurrentMission(this.activeMission);
+                this.activeMission = null;
+                this.trigger('missionComplete');
+            })
+            .on("hackTracked", ()=>{
+                this.playerComputer.clearMissionTasks();
+            });
         this.activeMission.computer.connect(this.playerConnection);
         for(let challenge of this.activeMission.challenges)
         {
@@ -5718,7 +5736,7 @@ class DictionaryPassword extends Password
     static reduceDictionary(reduction)
     {
         let reducedDictionary = [];
-        dictionary.forEach((entry, index)=>{if(index%PASSWORD_DICTIONARY_DIFFICULTIES.HARDEST >= reduction){reducedDictionary.push(entry);}})
+        dictionary.forEach((entry, index)=>{if(index%PASSWORD_DICTIONARY_DIFFICULTIES.HARDEST >= reduction){reducedDictionary.push(entry);}});
         return reducedDictionary;
     }
 }
@@ -8135,7 +8153,7 @@ class Mission extends EventListener
 
     tick()
     {
-        if(this.status == MISSION_STATUSES.COMPLETE)
+        if(this.status === MISSION_STATUSES.COMPLETE)
         {
             return;
         }

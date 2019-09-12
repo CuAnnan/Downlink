@@ -183,6 +183,15 @@ class CPUPool extends EventListener
         this.trigger('taskComplete');
     }
 
+    removeTasks(tasks)
+    {
+        for(let task of tasks)
+        {
+            helpers.removeArrayElement(this.tasks, task);
+            delete this.tasksByHash[task.hash];
+        }
+    }
+
     get availableCycles()
     {
         return this.totalSpeed - this.load;

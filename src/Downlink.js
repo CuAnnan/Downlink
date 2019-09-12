@@ -76,11 +76,15 @@ class Downlink extends EventListener
             return null;
         }
 
-        this.activeMission = MissionGenerator.getFirstAvailableMission().on("complete", ()=>{
-            this.finishCurrentMission(this.activeMission);
-            this.activeMission = null;
-            this.trigger('missionComplete');
-        });
+        this.activeMission = MissionGenerator.getFirstAvailableMission()
+            .on("complete", ()=>{
+                this.finishCurrentMission(this.activeMission);
+                this.activeMission = null;
+                this.trigger('missionComplete');
+            })
+            .on("hackTracked", ()=>{
+                this.playerComputer.clearMissionTasks();
+            });
         this.activeMission.computer.connect(this.playerConnection);
         for(let challenge of this.activeMission.challenges)
         {
