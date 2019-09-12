@@ -19,10 +19,13 @@
 <!--    &lt;!&ndash; Material Design Iconic Font &ndash;&gt;-->
 <!--    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/material-design-iconic-font/2.2.0/css/material-design-iconic-font.min.css"/>-->
     <script src="./lib/jquery-3.4.1.min.js"></script>
+
     <link rel="stylesheet" href="./lib/bootstrap-4.3.1-dist/css/bootstrap.min.css"/>
     <script src="./lib/bootstrap-4.3.1-dist/js/bootstrap.min.js"></script>
     <script src="./lib/bootstrap-4.3.1-dist/js/bootstrap.bundle.js"></script>
-    <link ref="stylesheet" href="./lib/fontawesome/css/all.css"/>
+
+    <link rel="stylesheet" href="./lib/fontawesome/css/all.css"/>
+
 
     <!-- main css -->
     <link href="./css/main.css" rel="stylesheet"/>
@@ -49,8 +52,8 @@
                 <div id="player-company-standings">
                     <div class="row" id="player-company-standings-title">
                         <div class="col">Company name</div>
-                        <div class="col-lg-2 col-3">Standing</div>
-                        <div class="col-lg-2 col-3">Security</div>
+                        <div class="col-lg-2 col-3" title="Your standing with the company"><i class="far fa-comments"></i></div>
+                        <div class="col-lg-2 col-3" title="The company's security level"><i class="fas fa-key"></i></div>
                     </div>
                 </div>
                 <h3 class="row">Your PC</h3>
@@ -84,11 +87,11 @@
                             <div class="col alert alert-warning" role="alert">Your connection is dangerously short. Starting missions without increasing it is ill advised.</div>
                         </div>
                         <div class="row">
-                            <div class="col"><b>Connection Length:</b></div>
+                            <div class="col"><b>Length:</b></div>
                             <div class="col"><span id="connection-length">0</span> redirects.</div>
                         </div>
                         <div class="row">
-                            <div class="col"><b>Connection Trace:</b></div>
+                            <div class="col"><b>Trace:</b></div>
                             <div class="col"><span id="connection-traced">0</span> redirects.</div>
                         </div>
                         <div class="row"><div class="col">
@@ -115,7 +118,6 @@
                     <div class="row"><div class="col">
                         <strong>ip address: </strong><span id="active-mission-server-ip-address"></span>
                     </div></div>
-                    <h2 class="row">Server security:</h2>
                     <div class="row"><div class="col">
                         <strong>Connection Trace Strength: </strong>
                         <span id="active-mission-trace-strength"></span>
@@ -124,7 +126,7 @@
                         <strong>Password:</strong> <input type="text" autocomplete="off" value="" id="active-mission-password-input" disabled/>
                     </div></div>
 
-                    <h1 class="row" id="active-mission-encryption-type"></h1>
+                    <div class="row"><div><strong class="col" id="active-mission-encryption-type"></strong></div></div>
                     <div class="row text-center" id="active-mission-encryption-task"><div class="col">
                         <div id="active-mission-encryption-grid"></div>
                     </div></div>

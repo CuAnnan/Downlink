@@ -3,6 +3,7 @@ const   Company = require('../Companies/Company'),
         {Password} = require('./Challenges/Password'),
         Encryption = require('./Challenges/Encryption'),
         EventListener = require('../EventListener'),
+        validWorldMapPoints = require('../validWorldMapPoints'),
         helpers = require('../Helpers');
 
 const MISSION_STATUSES = {
@@ -89,6 +90,7 @@ class Mission extends EventListener
         this.computer = new MissionComputer(this.target, serverType)
             .setPassword(Password.getPasswordForDifficulty(this.difficulty))
             .setEncryption(new Encryption(this.difficulty))
+            .setLocation(helpers.getRandomArrayElement(validWorldMapPoints))
             .on('accessed', ()=>{
                 this.signalComplete();
             }).on('connectionStepTraced', (step)=>{
@@ -123,6 +125,11 @@ class Mission extends EventListener
     set connection(connection)
     {
         this.computer.connect(connection);
+    }
+
+    get connection()
+    {
+        return this.computer.currentPlayerConnection;
     }
 
     tick()

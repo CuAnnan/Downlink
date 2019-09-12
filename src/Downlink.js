@@ -35,17 +35,17 @@ class Downlink extends EventListener
         this.currency = new Decimal(0);
     }
 
-    setPlayerComputer()
+    setPlayerComputer(location)
     {
-        this.playerComputer = ComputerGenerator.newPlayerComputer();
+        this.playerComputer = ComputerGenerator.newPlayerComputer(location);
         return this.playerComputer;
     }
 
-    getPlayerComputer()
+    getPlayerComputer(location)
     {
         if(!this.playerComputer)
         {
-            this.setPlayerComputer();
+            this.setPlayerComputer(location);
         }
         this.playerComputer.on('cpuPoolEmpty', ()=>{
             this.trigger('cpuPoolEmpty');
@@ -160,7 +160,6 @@ class Downlink extends EventListener
         this.getPlayerComputer(helper.popRandomArrayElement(allValidPoints));
         this.autoBuildConnection();
         Company.setAllPublicServerLocations(allValidPoints);
-
     }
 
     buildComputerGenerator(imageReference)
@@ -180,8 +179,20 @@ class Downlink extends EventListener
     autoBuildConnection()
     {
         this.playerConnection = Connection.fromAllPublicServers();
-        this.playerConnection.setStartingPoint(this.playerComputer);
+        this.playerConnection.setStartingPoint(this.playerComputer).initialise();
         return this.playerConnection;
+    }
+
+    get currentConnection()
+    {
+        if(this.activeMission)
+        {
+            return this.activeMission.connection;
+        }
+        else
+        {
+            return this.playerConnection;
+        }
     }
 
     toJSON()

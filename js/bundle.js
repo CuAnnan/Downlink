@@ -2622,7 +2622,7 @@ class ComputerGenerator
         return this;
     }
 
-    newPlayerComputer()
+    newPlayerComputer(location)
     {
         let potato = new PlayerComputer([
             new CPU(),
@@ -3483,6 +3483,61 @@ class InvalidComputerError extends Error{}
 
 let connections = 0;
 
+class ConnectionStep extends EventListener
+{
+    constructor(computer1, computer2)
+    {
+        super();
+        this.traceTicks = 0;
+        this.computer1 = computer1;
+        this.computer2 = computer2;
+        this.amountTraced = 0;
+        this.tracing = false;
+        this.traced = false;
+        this.state = ConnectionStep.states.pristine;
+    }
+
+    reverse()
+    {
+        let temp = this.computer1;
+        this.computer1 = this.computer2;
+        this.computer2 = temp;
+        return this;
+    }
+
+    /**
+     * This method increases the amount the connection step has been traced by
+     * and returns the remaining amount that the reduction has left or null if the connection does not succeed
+     * So if the ConnectionLength is 30, the amount traced is 10 and the current
+     * trace amount is 25, this method will return 5.
+     * If the ConnectionLength is 20, the amount traced is 5 and the current trace amount is 10
+     * the return value will be -1
+     * This allows us to check if the amount traced resulted in a successful trace as any value greater than
+     * or equal to zero is a trace.
+     * @param {number}  amount  The distance to trace
+     * @returns {number}    The remaining distance after this step has been traced
+     */
+    traceAmount(amount) {
+        this.state = ConnectionStep.states.tracing;
+        this.amountTraced += amount;
+        this.amountRemaining = ConnectionStep.distance - this.amountTraced;
+        this.amountRemaining = this.amountRemaining >= 0 ? this.amountRemaining : 0;
+        this.traceTicks++;
+        if(this.amountTraced >= ConnectionStep.distance)
+        {
+            this.trigger(ConnectionStep.events.stepTraced);
+            let remainder = this.amountTraced - ConnectionStep.distance;
+            this.state = ConnectionStep.states.traced;
+            return remainder;
+        }
+        return -1;
+    }
+
+}
+ConnectionStep.distance = 25;
+ConnectionStep.states = {'pristine':'pristine','tracing':'tracing', 'traced':'traced'};
+ConnectionStep.events = {'stepTraced':'stepTraced'};
+
 /**
  * A class to encapsulate the points in between you and the target computer, excluding both
  */
@@ -3509,24 +3564,135 @@ class Connection extends EventListener
          * @type {Computer}
          */
         this.endPoint = null;
+        /**
+         * A friendly descriptor for the computer
+         * One is generated using the number of currently created connections if none is provided
+         * @type {string}
+         */
         this.name = name?name:`Connection ${connections}`;
+        /**
+         * The computers in the connection
+         * @type {Array.<Computer>}
+         */
         this.computers=[];
+        /**
+         * The steps in the connection
+         * @type {Array.<ConnectionStep>}
+         */
+        this.steps = [];
+        /**
+         * The total length of the connection as an abstract number.
+         * This is used as a ticker to let us know if the connection has been traced
+         * @type {number}
+         */
         this.connectionLength = 0;
-        this.computersTraced = 0;
+        /**
+         * The number of computers that have been sucessfully traced
+         * @type {number}
+         */
+        this.stepsTraced = 0;
+        /**
+         * The total length of the connection that has been traced
+         * @type {number}
+         */
         this.amountTraced = 0;
+        /**
+         * The number of ticks that we have been tracing.
+         * @type {number}
+         */
         this.traceTicks = 0;
+        /**
+         * A flag for tracking if this connection is active
+         * @type {boolean}
+         */
         this.active = false;
+        /**
+         * A flag for tracking if the connection has been traced
+         * @type {boolean}
+         */
         this.traced = false;
+        /**
+         * A state container so that we can initialise this.steps
+         * @type {boolean}
+         */
+        this.initialised = false;
+        /**
+         * The step currently being traced
+         * @type {null|ConnectionStep}
+         */
+        this.currentStep = null;
+    }
+
+    /**
+     * A method to initialise the connection steps.
+     */
+    initialise()
+    {
+        /*
+        Make sure this happens only once
+         */
+        if(this.initialised)
+        {
+            return;
+        }
+        // default the array
+        this.steps = [];
+        if(this.startingPoint && this.computers.length>=1)
+        {
+            this.steps.push(
+                new ConnectionStep(this.startingPoint, this.computers[0])
+                    .on(ConnectionStep.events.stepTraced, () => {
+                        this.stepTraced();
+                    })
+            );
+        }
+
+        // loop through all of the computers and make connections out of them.
+        for(let i = 1; i < this.computers.length; i++)
+        {
+            // the connection's first computer is either the last computer in the loop
+            // or the starting computer
+            this.steps.push(
+                new ConnectionStep(this.computers[i - 1], this.computers[i])
+                    .on(ConnectionStep.events.stepTraced, ()=>{
+                        this.stepTraced();
+                    })
+            );
+            // set the last computer in the loop to be this computer
+        }
+        if(this.endPoint) {
+            // make the step for the end point
+            // determine what the previous point is
+            let startPoint = this.computers.length > 0 ? this.computers[this.computers.length - 1] : this.startingPoint;
+            this.steps.push(
+                new ConnectionStep(startPoint, this.endPoint)
+                    .on(ConnectionStep.events.stepTraced, () => {
+                        this.stepTraced();
+                    })
+            );
+        }
+        // set initialised to true
+        this.initialised = true;
+        this.stepsRemaining = this.steps.length;
+        this.steps = this.steps.reverse();
+        this.currentStep = this.steps[0];
+
+    }
+
+    stepTraced()
+    {
+        this.trigger("stepTraced", this.stepsTraced);
     }
 
     static improveConnectionDistance(amount)
     {
         Connection.connectionDistance += amount;
+        ConnectionStep.length += amount;
     }
 
     get totalConnectionLength()
     {
-        return this.connectionLength * Connection.connectionDistance;
+        return this.connectionLength * ConnectionStep.distance;
     }
 
     setStartingPoint(startingComputer)
@@ -3540,12 +3706,13 @@ class Connection extends EventListener
     {
         this.endPoint = endPointComputer;
         this.connectionLength ++;
+        this.initialise();
         return this;
     }
 
     connect()
     {
-        this.computersTraced = 0;
+        this.stepsTraced = 0;
         this.amountTraced = 0;
         this.active = true;
         return this.open();
@@ -3590,14 +3757,20 @@ class Connection extends EventListener
     }
 
     /**
-     * @param stepTraceAmount the amount of the current step in the connection to trace by
+     * @param {number|null} stepTraceAmount the amount of the current step in the connection to trace by
      */
     traceStep(stepTraceAmount)
     {
+        if(!this.initialised)
+        {
+            this.initialise();
+        }
         if(this.traced)
         {
+            this.trigger('updateTracePercentage', this.tracePercent);
             return;
         }
+
         this.amountTraced += stepTraceAmount;
         this.traceTicks++;
         if(this.traceTicks % Connection.sensitivity === 0)
@@ -3605,22 +3778,28 @@ class Connection extends EventListener
             this.trigger('updateTracePercentage', this.tracePercent);
         }
 
-        if(this.amountTraced >= Connection.connectionDistance)
+        let remainder = null;
+        do
         {
-            this.computersTraced++;
-            this.amountTraced = 0;
-            if(this.computersTraced >= this.connectionLength)
+            remainder = this.currentStep.traceAmount(stepTraceAmount);
+            if(remainder >= 0)
             {
-                this.traced = true;
-                this.trigger("connectionTraced");
+                this.stepsTraced ++;
+                this.currentStep = this.steps[this.stepsTraced < this.steps.length?this.stepsTraced:this.steps.length - 1];
             }
-            this.trigger("stepTraced", this.computersTraced);
-        }
+
+
+            if(this.stepsTraced === this.steps.length)
+            {
+                this.trigger('connectionTraced');
+                this.traced = true;
+            }
+        }while(remainder > 0 || this.stepsTraced >= this.steps.length);
     }
 
     get totalAmountTraced()
     {
-        let traceAmount = (this.computersTraced * Connection.connectionDistance) + this.amountTraced;
+        let traceAmount = (this.stepsTraced * ConnectionStep.distance) + this.currentStep.amountTraced;
         return traceAmount;
     }
 
@@ -3717,9 +3896,20 @@ class Connection extends EventListener
         }
         return connection;
     }
+
+    reverse()
+    {
+        this.steps.reverse();
+        for(let step of this.steps.reverse())
+        {
+            step.reverse();
+        }
+        [this.startingPoint, this.endPoint] = [this.endPoint, this.startingPoint];
+        return this;
+    }
 }
 
-Connection.connectionDistance = 250;
+Connection.connectionDistance = 50;
 Connection.sensitivity = 10;
 
 module.exports = Connection;
@@ -3762,17 +3952,17 @@ class Downlink extends EventListener
         this.currency = new Decimal(0);
     }
 
-    setPlayerComputer()
+    setPlayerComputer(location)
     {
-        this.playerComputer = ComputerGenerator.newPlayerComputer();
+        this.playerComputer = ComputerGenerator.newPlayerComputer(location);
         return this.playerComputer;
     }
 
-    getPlayerComputer()
+    getPlayerComputer(location)
     {
         if(!this.playerComputer)
         {
-            this.setPlayerComputer();
+            this.setPlayerComputer(location);
         }
         this.playerComputer.on('cpuPoolEmpty', ()=>{
             this.trigger('cpuPoolEmpty');
@@ -3887,7 +4077,6 @@ class Downlink extends EventListener
         this.getPlayerComputer(helper.popRandomArrayElement(allValidPoints));
         this.autoBuildConnection();
         Company.setAllPublicServerLocations(allValidPoints);
-
     }
 
     buildComputerGenerator(imageReference)
@@ -3907,8 +4096,20 @@ class Downlink extends EventListener
     autoBuildConnection()
     {
         this.playerConnection = Connection.fromAllPublicServers();
-        this.playerConnection.setStartingPoint(this.playerComputer);
+        this.playerConnection.setStartingPoint(this.playerComputer).initialise();
         return this.playerConnection;
+    }
+
+    get currentConnection()
+    {
+        if(this.activeMission)
+        {
+            return this.activeMission.connection;
+        }
+        else
+        {
+            return this.playerConnection;
+        }
     }
 
     toJSON()
@@ -4528,9 +4729,8 @@ module.exports = EventListener;
         },
         updateConnectionMap:function()
         {
-            let connection = this.downlink.playerConnection,
+            let connection = this.downlink.currentConnection,
                 context = this.getFreshCanvas().getContext('2d'),
-                currentComputer = this.downlink.playerComputer,
                 mmContext = this.miniMapCanvas.getContext('2d'),
                 ratio = this.miniMapCanvas.width / context.canvas.width;
             this.miniMapCanvas.height = context.canvas.height * ratio;
@@ -4538,21 +4738,33 @@ module.exports = EventListener;
             mmContext.strokeStyle='#000';
             mmContext.lineWidth=0.3;
 
-            for(let computer of connection.computers)
+            for(let step of connection.steps)
             {
+                let loc1 = step.computer1.location,
+                    loc2 = step.computer2.location;
                 // connect the current computer to the current computer in the connection
                 context.beginPath();
-                context.moveTo(currentComputer.location.x, currentComputer.location.y);
-                context.lineTo(computer.location.x, computer.location.y);
+                context.moveTo(loc1.x, loc1.y);
+                context.lineTo(loc2.x, loc2.y);
                 context.stroke();
 
+                switch(step.state)
+                {
+                    case "pristine":
+                        mmContext.strokeStyle = '#000';
+                        break;
+                    case "tracing":
+                        mmContext.strokeStyle = '#f99';
+                        break;
+                    case "traced":
+                        mmContext.strokeStyle = '#f00';
+                        break;
+                }
                 mmContext.beginPath();
-                mmContext.moveTo(currentComputer.location.x * ratio, currentComputer.location.y * ratio);
-                mmContext.lineTo(computer.location.x * ratio, computer.location.y*ratio);
+                mmContext.moveTo(loc1.x * ratio, loc1.y * ratio);
+                mmContext.lineTo(loc2.x * ratio, loc2.y * ratio);
                 mmContext.stroke();
 
-                // set the currentComputer to be the current computer in the connection
-                currentComputer = computer;
             }
             // place the image in the mini map
 
@@ -4718,6 +4930,7 @@ module.exports = EventListener;
             this.$activeMissionTraceStrength.text(this.mission.computer.traceSpeed.toFixed(2));
             this.updateMissionInterface(this.mission);
             this.requiresNewMission = false;
+            this.updateConnectionMap();
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -4732,6 +4945,7 @@ module.exports = EventListener;
                 this.save();
             }).on("connectionStepTraced", (stepsTraced)=>{
                 this.$connectionTraced.html(stepsTraced);
+                this.updateConnectionMap();
             }).on("updateTracePercentage", (percentageTraced)=>{
                 this.$connectionTracePercentage.html(percentageTraced);
                 this.$connectionTraceBar.css('width', percentageTraced+'%');
@@ -7677,6 +7891,7 @@ const   Company = require('../Companies/Company'),
         {Password} = require('./Challenges/Password'),
         Encryption = require('./Challenges/Encryption'),
         EventListener = require('../EventListener'),
+        validWorldMapPoints = require('../validWorldMapPoints'),
         helpers = require('../Helpers');
 
 const MISSION_STATUSES = {
@@ -7763,6 +7978,7 @@ class Mission extends EventListener
         this.computer = new MissionComputer(this.target, serverType)
             .setPassword(Password.getPasswordForDifficulty(this.difficulty))
             .setEncryption(new Encryption(this.difficulty))
+            .setLocation(helpers.getRandomArrayElement(validWorldMapPoints))
             .on('accessed', ()=>{
                 this.signalComplete();
             }).on('connectionStepTraced', (step)=>{
@@ -7799,6 +8015,11 @@ class Mission extends EventListener
         this.computer.connect(connection);
     }
 
+    get connection()
+    {
+        return this.computer.currentPlayerConnection;
+    }
+
     tick()
     {
         if(this.status == MISSION_STATUSES.COMPLETE)
@@ -7819,7 +8040,7 @@ class Mission extends EventListener
 }
 module.exports = Mission;
 
-},{"../Companies/Company":7,"../EventListener":24,"../Helpers":26,"./Challenges/Encryption":28,"./Challenges/Password":29,"./MissionComputer":32}],32:[function(require,module,exports){
+},{"../Companies/Company":7,"../EventListener":24,"../Helpers":26,"../validWorldMapPoints":35,"./Challenges/Encryption":28,"./Challenges/Password":29,"./MissionComputer":32}],32:[function(require,module,exports){
 const   Computer = require('../Computers/Computer');
 let  DIFFICULTY_EXPONENT = 1.8;
 
@@ -7898,10 +8119,9 @@ class MissionComputer extends Computer
     connect(connection)
     {
         super.connect();
-        let clone = connection.clone();
-        clone.setEndPoint(this);
-
-        clone
+        let clone = connection.clone()
+            .setEndPoint(this)
+            .reverse()
             .once("connectionTraced", ()=>{
                 this.trigger('hackTracked');
             }).on('stepTraced',(step)=>{

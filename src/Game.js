@@ -296,9 +296,8 @@
         },
         updateConnectionMap:function()
         {
-            let connection = this.downlink.playerConnection,
+            let connection = this.downlink.currentConnection,
                 context = this.getFreshCanvas().getContext('2d'),
-                currentComputer = this.downlink.playerComputer,
                 mmContext = this.miniMapCanvas.getContext('2d'),
                 ratio = this.miniMapCanvas.width / context.canvas.width;
             this.miniMapCanvas.height = context.canvas.height * ratio;
@@ -306,21 +305,33 @@
             mmContext.strokeStyle='#000';
             mmContext.lineWidth=0.3;
 
-            for(let computer of connection.computers)
+            for(let step of connection.steps)
             {
+                let loc1 = step.computer1.location,
+                    loc2 = step.computer2.location;
                 // connect the current computer to the current computer in the connection
                 context.beginPath();
-                context.moveTo(currentComputer.location.x, currentComputer.location.y);
-                context.lineTo(computer.location.x, computer.location.y);
+                context.moveTo(loc1.x, loc1.y);
+                context.lineTo(loc2.x, loc2.y);
                 context.stroke();
 
+                switch(step.state)
+                {
+                    case "pristine":
+                        mmContext.strokeStyle = '#000';
+                        break;
+                    case "tracing":
+                        mmContext.strokeStyle = '#f99';
+                        break;
+                    case "traced":
+                        mmContext.strokeStyle = '#f00';
+                        break;
+                }
                 mmContext.beginPath();
-                mmContext.moveTo(currentComputer.location.x * ratio, currentComputer.location.y * ratio);
-                mmContext.lineTo(computer.location.x * ratio, computer.location.y*ratio);
+                mmContext.moveTo(loc1.x * ratio, loc1.y * ratio);
+                mmContext.lineTo(loc2.x * ratio, loc2.y * ratio);
                 mmContext.stroke();
 
-                // set the currentComputer to be the current computer in the connection
-                currentComputer = computer;
             }
             // place the image in the mini map
 
@@ -486,6 +497,7 @@
             this.$activeMissionTraceStrength.text(this.mission.computer.traceSpeed.toFixed(2));
             this.updateMissionInterface(this.mission);
             this.requiresNewMission = false;
+            this.updateConnectionMap();
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -500,6 +512,7 @@
                 this.save();
             }).on("connectionStepTraced", (stepsTraced)=>{
                 this.$connectionTraced.html(stepsTraced);
+                this.updateConnectionMap();
             }).on("updateTracePercentage", (percentageTraced)=>{
                 this.$connectionTracePercentage.html(percentageTraced);
                 this.$connectionTraceBar.css('width', percentageTraced+'%');

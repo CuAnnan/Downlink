@@ -76,10 +76,9 @@ class MissionComputer extends Computer
     connect(connection)
     {
         super.connect();
-        let clone = connection.clone();
-        clone.setEndPoint(this);
-
-        clone
+        let clone = connection.clone()
+            .setEndPoint(this)
+            .reverse()
             .once("connectionTraced", ()=>{
                 this.trigger('hackTracked');
             }).on('stepTraced',(step)=>{
