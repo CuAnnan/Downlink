@@ -119,11 +119,6 @@ class Connection extends EventListener
          */
         this.stepsTraced = 0;
         /**
-         * The total length of the connection that has been traced
-         * @type {number}
-         */
-        this.amountTraced = 0;
-        /**
          * The number of ticks that we have been tracing.
          * @type {number}
          */
@@ -200,7 +195,6 @@ class Connection extends EventListener
         }
         // set initialised to true
         this.initialised = true;
-        this.stepsRemaining = this.steps.length;
         this.steps = this.steps.reverse();
         this.currentStep = this.steps[0];
 
@@ -240,7 +234,6 @@ class Connection extends EventListener
     connect()
     {
         this.stepsTraced = 0;
-        this.amountTraced = 0;
         this.active = true;
         return this.open();
     }
@@ -298,7 +291,6 @@ class Connection extends EventListener
             return;
         }
 
-        this.amountTraced += stepTraceAmount;
         this.traceTicks++;
         if(this.traceTicks % Connection.sensitivity === 0)
         {
@@ -326,8 +318,7 @@ class Connection extends EventListener
 
     get totalAmountTraced()
     {
-        let traceAmount = (this.stepsTraced * ConnectionStep.distance) + this.currentStep.amountTraced;
-        return traceAmount;
+        return (this.stepsTraced * ConnectionStep.distance) + this.currentStep.amountTraced;
     }
 
     close()
