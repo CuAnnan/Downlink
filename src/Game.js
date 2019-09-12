@@ -331,7 +331,7 @@
             context.lineTo(position2.x * ratio, position2.y * ratio);
             context.stroke();
         },
-        drawPartiallyTracedStep:function(step, context, mmContext, ratio, untracedLineColor, tracedLineColor)
+        drawPartiallyTracedStep:function(step, context, mmContext, ratio, tracedLineColor, untracedLineColor)
         {
             let loc1 = step.computer1.location,
                 loc2 = step.tracePoint,

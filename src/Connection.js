@@ -12,24 +12,54 @@ let connections = 0;
 
 class ConnectionStep extends EventListener
 {
+    /**
+     * A class to represent the connection between two computers as it is being traced.
+     * @param {Computer} computer1
+     * @param {Computer} computer2
+     */
     constructor(computer1, computer2)
     {
         super();
+        /**
+         * Similarly Connections traceTicks property, this is just an iteration counter that can be used if needed
+         * @type {number}
+         */
         this.traceTicks = 0;
+        /**
+         * The first computer in this link
+         * @type {Computer}
+         */
         this.computer1 = computer1;
+        /**
+         * The second computer in this link
+         * @type {Computer}
+         */
         this.computer2 = computer2;
+        /**
+         * An abstract number governing how much of this link has been traced
+         * @type {number}
+         */
         this.amountTraced = 0;
-        this.tracing = false;
-        this.traced = false;
+        /**
+         * A connection can have one of three states, as defined by the Connection.states enum
+         * @type {string}
+         */
         this.state = ConnectionStep.states.pristine;
     }
 
     reverse()
     {
-        let temp = this.computer1;
-        this.computer1 = this.computer2;
-        this.computer2 = temp;
+        [this.computer1, this.computer2] = [this.computer2, this.computer1];
         return this;
+    }
+
+    toJSON()
+    {
+        return {
+            computer1:this.computer1,
+            computer2:this.computer2,
+            state:this.state
+        }
     }
 
     get tracePoint()
@@ -57,7 +87,6 @@ class ConnectionStep extends EventListener
     traceAmount(amount) {
         this.state = ConnectionStep.states.tracing;
         this.amountTraced += amount;
-        this.amountRemaining = Math.max(ConnectionStep.distance - this.amountTraced, 0);
         this.traceTicks++;
         if(this.amountTraced >= ConnectionStep.distance)
         {
@@ -427,10 +456,6 @@ class Connection extends EventListener
     reverse()
     {
         this.steps.reverse();
-        for(let step of this.steps.reverse())
-        {
-            step.reverse();
-        }
         [this.startingPoint, this.endPoint] = [this.endPoint, this.startingPoint];
         return this;
     }

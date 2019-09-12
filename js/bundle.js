@@ -3499,10 +3499,17 @@ class ConnectionStep extends EventListener
 
     reverse()
     {
-        let temp = this.computer1;
-        this.computer1 = this.computer2;
-        this.computer2 = temp;
+        [this.computer1, this.computer2] = [this.computer2, this.computer1];
         return this;
+    }
+
+    toJSON()
+    {
+        return {
+            computer1:this.computer1,
+            computer2:this.computer2,
+            state:this.state
+        }
     }
 
     get tracePoint()
@@ -3900,10 +3907,6 @@ class Connection extends EventListener
     reverse()
     {
         this.steps.reverse();
-        for(let step of this.steps.reverse())
-        {
-            step.reverse();
-        }
         [this.startingPoint, this.endPoint] = [this.endPoint, this.startingPoint];
         return this;
     }
@@ -4764,12 +4767,11 @@ module.exports = EventListener;
             context.lineTo(position2.x * ratio, position2.y * ratio);
             context.stroke();
         },
-        drawPartiallyTracedStep:function(step, context, mmContext, ratio, untracedLineColor, tracedLineColor)
+        drawPartiallyTracedStep:function(step, context, mmContext, ratio, tracedLineColor, untracedLineColor)
         {
             let loc1 = step.computer1.location,
                 loc2 = step.tracePoint,
                 loc3 = step.computer2.location;
-            console.log(loc1, loc2, loc3);
             this.drawLineOnContext(context, loc1, loc2, tracedLineColor);
             this.drawLineOnContext(context, loc2, loc3, untracedLineColor);
             this.drawLineOnContext(mmContext, loc1, loc2, tracedLineColor, ratio);
