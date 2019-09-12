@@ -2137,7 +2137,7 @@ function drawGraphs(iceBreaker, context)
         drawGraph(iceBreaker.iceBreakerPoints, context, '#00d');
     }
 
-    drawGraph(iceBreaker.icePoints, context, '#800')
+    drawGraph(iceBreaker.icePoints, context, '#800');
     context.strokeStyle = '#000';
 }
 

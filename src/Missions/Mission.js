@@ -138,7 +138,7 @@ class Mission extends EventListener
 
     tick()
     {
-        if(this.status == MISSION_STATUSES.COMPLETE)
+        if(this.status === MISSION_STATUSES.COMPLETE)
         {
             return;
         }

@@ -2,9 +2,9 @@ const   Task = require('./Tasks/Task'),
         Upgradeable = require('../Upgradeable'),
         cpus = require('./cpus');
 
-class CPUFullError extends Error{};
-class CPUDuplicateTaskError extends Error{};
-class InvalidTaskError extends Error{};
+class CPUFullError extends Error{}
+class CPUDuplicateTaskError extends Error{}
+class InvalidTaskError extends Error{}
 
 const CPU_COST_MODIFIER = 4000;
 

@@ -8,7 +8,7 @@ const   {Password, DictionaryPassword, AlphanumericPassword} = require('../Missi
         CPUPool = require('./CPUPool'),
         CPU = require('./CPU.js');
 
-class InvalidTaskError extends Error{};
+class InvalidTaskError extends Error{}
 const DEFAULT_MAX_CPUS = 4;
 
 

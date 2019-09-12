@@ -15,6 +15,7 @@ class IceBreakerPoint
 {
     /**
      * @param {IcePoint} icePoint
+     * @param {number} range
      */
     constructor(icePoint, range)
     {
