@@ -101,7 +101,7 @@ class DictionaryPassword extends Password
     static reduceDictionary(reduction)
     {
         let reducedDictionary = [];
-        dictionary.forEach((entry, index)=>{if(index%PASSWORD_DICTIONARY_DIFFICULTIES.HARDEST >= reduction){reducedDictionary.push(entry);}})
+        dictionary.forEach((entry, index)=>{if(index%PASSWORD_DICTIONARY_DIFFICULTIES.HARDEST >= reduction){reducedDictionary.push(entry);}});
         return reducedDictionary;
     }
 }

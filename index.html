@@ -6,6 +6,8 @@
     <title>Downlink</title>
 </head>
 <body>
+    <!-- CDNs -->
+
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <!-- Bootstrap -->
@@ -16,6 +18,13 @@
     <script src="https://kit.fontawesome.com/834595109a.js"></script>
     <!-- Material Design Iconic Font -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/material-design-iconic-font/2.2.0/css/material-design-iconic-font.min.css"/>
+<!--    <script src="./lib/jquery-3.4.1.min.js"></script>-->
+
+<!--    <link rel="stylesheet" href="./lib/bootstrap-4.3.1-dist/css/bootstrap.min.css"/>-->
+<!--    <script src="./lib/bootstrap-4.3.1-dist/js/bootstrap.min.js"></script>-->
+<!--    <script src="./lib/bootstrap-4.3.1-dist/js/bootstrap.bundle.js"></script>-->
+
+<!--    <link rel="stylesheet" href="./lib/fontawesome/css/all.css"/>-->
 
 
     <!-- main css -->
@@ -37,14 +46,14 @@
                 <h2 class="row">Player:</h2>
                 <div class="row" id="player-currency-row">
                     <strong class="col">Currency Units: </strong>
-                    <div class="col-2" id="player-currency">0.00</div>
+                    <div class="col text-right" id="player-currency">0.00</div>
                 </div>
                 <h3 class="row">Company Details</h3>
                 <div id="player-company-standings">
                     <div class="row" id="player-company-standings-title">
                         <div class="col">Company name</div>
-                        <div class="col-2">Standing</div>
-                        <div class="col-2">Security</div>
+                        <div class="col-lg-2 col-3" title="Your standing with the company"><i class="far fa-comments"></i></div>
+                        <div class="col-lg-2 col-3" title="The company's security level"><i class="fas fa-key"></i></div>
                     </div>
                 </div>
                 <h3 class="row">Your PC</h3>
@@ -63,30 +72,6 @@
 
                 </div></div>
 
-                <h2 class="row">Connection</h2>
-                <div class="row" id="connection-warning-row">
-                    <div class="col alert alert-warning" role="alert">Your connection is dangerously short. Starting missions without increasing it is ill advised.</div>
-                </div>
-                <div class="row">
-                    <div class="col"><b>Connection Length:</b></div>
-                    <div class="col"><span id="connection-length">0</span> redirects.</div>
-                </div>
-                <div class="row">
-                    <div class="col"><b>Connection Trace:</b></div>
-                    <div class="col"><span id="connection-traced">0</span> redirects.</div>
-                </div>
-                <div class="row"><div class="col">
-                    <div id="connection-trace-progress">
-                        <div class="percentage-bar-container text-center">
-                            <div class="percentage-bar" id="connection-trace-bar">&nbsp;</div>
-                            <div class="percentage-text"><span id="connection-trace-percentage">0</span>%</div>
-                        </div>
-                    </div>
-                </div></div>
-                <div class="row"><div class="col text-center">
-                    <button id="disconnect-button" class="btn btn-sm btn-danger" disabled autocomplete="off">Disconnect</button>
-                </div></div>
-
                 <div class="row"><div class="col"><h1>Missions</h1></div></div>
                 <div class="row" id="mission-controls"><div class="col">
                     <button id="missions-toggle-button" class="btn btn-primary btn-sm">Start Taking Missions</button>
@@ -95,15 +80,44 @@
             </div>
 
             <div class="col-12 col-lg-6" id="active-mission-machine-container">
+                <div class="row">
+                    <div class="col" id="connection-details-container">
+                        <h2 class="row">Connection</h2>
+                        <div class="row" id="connection-warning-row">
+                            <div class="col alert alert-warning" role="alert">Your connection is dangerously short. Starting missions without increasing it is ill advised.</div>
+                        </div>
+                        <div class="row">
+                            <div class="col"><b>Length:</b></div>
+                            <div class="col"><span id="connection-length">0</span> redirects.</div>
+                        </div>
+                        <div class="row">
+                            <div class="col"><b>Trace:</b></div>
+                            <div class="col"><span id="connection-traced">0</span> redirects.</div>
+                        </div>
+                        <div class="row"><div class="col">
+                            <div id="connection-trace-progress">
+                                <div class="percentage-bar-container text-center">
+                                    <div class="percentage-bar" id="connection-trace-bar">&nbsp;</div>
+                                    <div class="percentage-text"><span id="connection-trace-percentage">0</span>%</div>
+                                </div>
+                            </div>
+                        </div></div>
+                        <div class="row"><div class="col text-center">
+                            <button id="disconnect-button" class="btn btn-sm btn-danger" disabled autocomplete="off">Disconnect</button>
+                        </div></div>
+                    </div>
+                    <div class="col">
+                        <canvas id="mini-world-map"></canvas>
+                    </div>
+                </div>
                 <div id="active-mission-machine-details" class="container-fluid">
                     <h2 class="row">Server details:</h2>
-                    <div class="row">
+                    <div class="row"><div class="col">
                         <strong>Name: </strong><span id="active-mission-server-name"></span>
-                    </div>
-                    <div class="row">
+                    </div></div>
+                    <div class="row"><div class="col">
                         <strong>ip address: </strong><span id="active-mission-server-ip-address"></span>
-                    </div>
-                    <h2 class="row">Server security:</h2>
+                    </div></div>
                     <div class="row"><div class="col">
                         <strong>Connection Trace Strength: </strong>
                         <span id="active-mission-trace-strength"></span>
@@ -112,7 +126,7 @@
                         <strong>Password:</strong> <input type="text" autocomplete="off" value="" id="active-mission-password-input" disabled/>
                     </div></div>
 
-                    <h1 class="row" id="active-mission-encryption-type"></h1>
+                    <div class="row"><div><strong class="col" id="active-mission-encryption-type"></strong></div></div>
                     <div class="row text-center" id="active-mission-encryption-task"><div class="col">
                         <div id="active-mission-encryption-grid"></div>
                     </div></div>
@@ -162,15 +176,15 @@
                 <div class="modal-body">
                     <div class="container-fluid">
                         <h4 class="row">About</h4>
-                        <div class="row">Downlink is roughly inspired by the 2000 Introversion hacking game. There's a more complete schpiel about it on the github's home page (link at bottom right of normal page).</div>
-                        <div class="row">You have been playing for <span id="settings-time-played"></span> seconds.</div>
+                        <div class="row"><div class="col">Downlink is roughly inspired by the 2000 Introversion hacking game. There's a more complete schpiel about it on the github's home page (link at bottom right of normal page).</div></div>
+                        <div class="row"><div class="col">You have been playing for <span id="settings-time-played"></span> seconds and in that time you have taken <span id="settings-mission-taken"></span>, <span id="settings-missions-succceeded">0</span> of which you have succeeded, <span id="settings-missions-failed">0</span> of which you have failed.</div></div>
                         <h4 class="row">Import/export</h4>
-                        <div class="row"><textarea id="settings-import-export"></textarea></div>
-                        <div class="row">
+                        <div class="row"><div class="col"><textarea id="settings-import-export"></textarea></div></div>
+                        <div class="row"><div class="col">
                             <button id="settings-import-button">Import</button>
                             <button id="settings-export-button">Export</button>
                             <button id="settings-save-button">Save</button>
-                        </div>
+                        </div></div>
                     </div>
                 </div>
             </div>
@@ -212,6 +226,11 @@
                                 </div></div>
                                 <div class="row"><div class="col">
                                     <button class="btn btn-sm btn-primary" id="increase-cpu-grid-size"> &plus; <span id="grid-size-increase-amount"></span> max CPUs (<span id="grid-size-increase-cost"></span>)</button>
+                                </div></div>
+                                <div class="row"><div class="col">
+                                    <label for="settings-autoreplace-cpus">Auto Replace CPUS?</label>
+                                    <input type="checkbox" value="yes" id="settings-autoreplace-cpus"/>
+                                    (Warning, this increases the CPU cost by 50%)
                                 </div></div>
                             </div>
                             <div class="col" id="computer-parts-layout">

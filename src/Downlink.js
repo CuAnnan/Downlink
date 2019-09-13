@@ -29,26 +29,37 @@ class Downlink extends EventListener
         this.playerConnection = null;
         this.runTime = 0;
         this.lastTickTime = Date.now();
+        this.missionData = {
+            taken:0,
+            failed:0,
+            succeeded:0
+        };
+        this.autoPurchaseCPUs = false;
         /**
          * @type {Decimal}
          */
         this.currency = new Decimal(0);
     }
 
-    setPlayerComputer()
+    setPlayerComputer(location)
     {
-        this.playerComputer = ComputerGenerator.newPlayerComputer();
+        this.playerComputer = ComputerGenerator.newPlayerComputer(location);
         return this.playerComputer;
     }
 
-    getPlayerComputer()
+    getPlayerComputer(location)
     {
         if(!this.playerComputer)
         {
-            this.setPlayerComputer();
+            this.setPlayerComputer(location);
         }
-        this.playerComputer.on('cpuPoolEmpty', ()=>{
+        this.playerComputer.once('cpuPoolEmpty', ()=>{
             this.trigger('cpuPoolEmpty');
+        }).on('cpuBurnedOut', (slot, cpu)=>{
+            if(this.autoPurchaseCPUs)
+            {
+                this.autoBuyCPU(cpu, slot);
+            }
         });
         return this.playerComputer;
     }
@@ -75,12 +86,18 @@ class Downlink extends EventListener
         {
             return null;
         }
-
-        this.activeMission = MissionGenerator.getFirstAvailableMission().on("complete", ()=>{
-            this.finishCurrentMission(this.activeMission);
-            this.activeMission = null;
-            this.trigger('missionComplete');
-        });
+        this.missionData.taken ++;
+        this.activeMission = MissionGenerator.getFirstAvailableMission()
+            .on("complete", ()=>{
+                this.finishCurrentMission(this.activeMission);
+                this.activeMission = null;
+                this.missionData.succeeded++;
+                this.trigger('missionComplete');
+            })
+            .on("hackTracked", ()=>{
+                this.missionData.failed++;
+                this.playerComputer.clearMissionTasks();
+            });
         this.activeMission.computer.connect(this.playerConnection);
         for(let challenge of this.activeMission.challenges)
         {
@@ -160,7 +177,6 @@ class Downlink extends EventListener
         this.getPlayerComputer(helper.popRandomArrayElement(allValidPoints));
         this.autoBuildConnection();
         Company.setAllPublicServerLocations(allValidPoints);
-
     }
 
     buildComputerGenerator(imageReference)
@@ -180,8 +196,20 @@ class Downlink extends EventListener
     autoBuildConnection()
     {
         this.playerConnection = Connection.fromAllPublicServers();
-        this.playerConnection.setStartingPoint(this.playerComputer);
+        this.playerConnection.setStartingPoint(this.playerComputer).initialise();
         return this.playerConnection;
+    }
+
+    get currentConnection()
+    {
+        if(this.activeMission)
+        {
+            return this.activeMission.connection;
+        }
+        else
+        {
+            return this.playerConnection;
+        }
     }
 
     toJSON()
@@ -193,6 +221,8 @@ class Downlink extends EventListener
             currency:this.currency.toString(),
             runTime:this.runTime,
             researches:Research.categoryResearches,
+            missionData:this.missionData,
+            autoPurchaseCPUs:this.autoPurchaseCPUs
         };
         for(let company of this.companies)
         {
@@ -212,6 +242,8 @@ class Downlink extends EventListener
         downlink.playerComputer = ComputerGenerator.fromJSON(json.playerComputer);
         downlink.runTime = parseInt(json.runTime);
         downlink.lastTickTime = Date.now();
+        downlink.missionData = json.missionData;
+        downlink.autoPurchaseCPUs = json.autoPurchaseCPUs;
 
 
         downlink.playerConnection = Connection.fromJSON(json.playerConnection);
@@ -252,6 +284,16 @@ class Downlink extends EventListener
     canAfford(cost)
     {
         return this.currency.greaterThan(cost);
+    }
+
+    autoBuyCPU(cpuData, slot)
+    {
+        let cpu = CPU.getCPUByName(cpuData.name);
+        this.currency = this.currency.minus(CPU.getPriceFor(cpuData) * 1.5);
+        this.playerComputer
+            .setCPUSlot(slot, cpu)
+            .updateLoadBalance();
+        this.trigger('cpusAutoReplaced');
     }
 
     buyCPU(cpuData, slot)
@@ -299,6 +341,12 @@ class Downlink extends EventListener
     {
         return this.playerComputer.currentCPUTasks;
     }
+
+    setCPUAutoPurchase(autoPurchase)
+    {
+        this.autoPurchaseCPUs = autoPurchase;
+    }
+
 }
 
 module.exports = Downlink;

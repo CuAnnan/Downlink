@@ -4,22 +4,22 @@ const   {Password, DictionaryPassword, AlphanumericPassword} = require('../Missi
         Encryption = require('../Missions/Challenges/Encryption'),
         EncryptionCracker = require('./Tasks/EncryptionCracker'),
         ResearchTask = require('./Tasks/ResearchTask'),
-        Computer = require('./Computer'),
+        MechanicalComputer = require('./MechanicalComputer'),
         CPUPool = require('./CPUPool'),
         CPU = require('./CPU.js');
 
-class InvalidTaskError extends Error{};
+class InvalidTaskError extends Error{}
 const DEFAULT_MAX_CPUS = 4;
 
 
-class PlayerComputer extends Computer
+class PlayerComputer extends MechanicalComputer
 {
     constructor(cpus, maxCPUs)
     {
         super('Home', null, '127.0.0.1');
         this.cpuPool = new CPUPool(cpus, maxCPUs?maxCPUs:DEFAULT_MAX_CPUS);
-        this.cpuPool.on('cpuBurnedOut', ()=>{
-            this.trigger('cpuBurnedOut');
+        this.cpuPool.on('cpuBurnedOut', (slot, cpu)=>{
+            this.trigger('cpuBurnedOut', slot, cpu);
         }).on("cpuPoolEmpty", ()=>{
             this.trigger('cpuPoolEmpty');
         });
@@ -85,6 +85,11 @@ class PlayerComputer extends Computer
 
 
         return task;
+    }
+
+    clearMissionTasks()
+    {
+        this.cpuPool.removeTasks(this.missionTasks);
     }
 
     addTaskForChallenge(challenge)

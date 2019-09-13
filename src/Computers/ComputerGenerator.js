@@ -32,7 +32,7 @@ class ComputerGenerator
         return this;
     }
 
-    newPlayerComputer()
+    newPlayerComputer(location)
     {
         let potato = new PlayerComputer([
             new CPU(),

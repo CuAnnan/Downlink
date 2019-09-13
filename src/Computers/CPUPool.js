@@ -100,9 +100,9 @@ class CPUPool extends EventListener
         }
     }
 
-    flagCPUDead()
+    flagCPUDead(slot, cpu)
     {
-        this.trigger('cpuBurnedOut');
+        this.trigger('cpuBurnedOut', slot, cpu);
         this.update();
         if(this.cpuCount === 0)
         {
@@ -181,6 +181,15 @@ class CPUPool extends EventListener
         }
         this.updateLoadBalance();
         this.trigger('taskComplete');
+    }
+
+    removeTasks(tasks)
+    {
+        for(let task of tasks)
+        {
+            helpers.removeArrayElement(this.tasks, task);
+            delete this.tasksByHash[task.hash];
+        }
     }
 
     get availableCycles()

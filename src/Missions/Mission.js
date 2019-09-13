@@ -3,12 +3,14 @@ const   Company = require('../Companies/Company'),
         {Password} = require('./Challenges/Password'),
         Encryption = require('./Challenges/Encryption'),
         EventListener = require('../EventListener'),
+        validWorldMapPoints = require('../validWorldMapPoints'),
         helpers = require('../Helpers');
 
 const MISSION_STATUSES = {
     UNDERWAY:'underway',
     AVAILABLE:'available',
-    COMPLETE:'complete'
+    COMPLETE:'complete',
+    FAILED:'failed'
 };
 
 
@@ -89,13 +91,17 @@ class Mission extends EventListener
         this.computer = new MissionComputer(this.target, serverType)
             .setPassword(Password.getPasswordForDifficulty(this.difficulty))
             .setEncryption(new Encryption(this.difficulty))
+            .setLocation(helpers.getRandomArrayElement(validWorldMapPoints))
             .on('accessed', ()=>{
                 this.signalComplete();
             }).on('connectionStepTraced', (step)=>{
                 this.trigger("connectionStepTraced", step);
             }).on('hackTracked', ()=>{
-                console.log("Connection traced");
+                console.log('Connection traced');
+                this.status = MISSION_STATUSES.FAILED;
                 this.target.traceHacker();
+                this.trigger('hackTracked');
+                this.computer.disconnect();
             }).on('updateTracePercentage', (percentage)=>{
                 this.trigger('updateTracePercentage', percentage);
             });
@@ -125,9 +131,14 @@ class Mission extends EventListener
         this.computer.connect(connection);
     }
 
+    get connection()
+    {
+        return this.computer.currentPlayerConnection;
+    }
+
     tick()
     {
-        if(this.status == MISSION_STATUSES.COMPLETE)
+        if(this.status === MISSION_STATUSES.COMPLETE)
         {
             return;
         }

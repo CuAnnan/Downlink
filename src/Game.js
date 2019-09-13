@@ -1,12 +1,11 @@
 // This file is solely responsible for exposing the necessary parts of the game to the UI elements
 (($)=>{$(()=>{
-
     const   Downlink = require('./Downlink'),
             CPU = require('./Computers/CPU'),
             EncryptionCracker = require('./Computers/Tasks/EncryptionCracker'),
             {PasswordCracker} = require('./Computers/Tasks/PasswordCracker'),
             Decimal = require('break_infinity.js'),
-            TICK_INTERVAL_LENGTH=100,
+            TICK_INTERVAL_LENGTH=5,
             MISSION_LIST_CLASS = 'mission-list-row',
             COMPANY_REP_CLASS = 'company-rep-row',
             COMPANY_SECURITY_CLASS = 'company-security-col',
@@ -36,11 +35,11 @@
         mission:false,
         computer:null,
         downlink:null,
-        version:"0.5.0b",
+        version:"0.5.5b",
         requiresHardReset:true,
         canTakeMissions:true,
         requiresNewMission:true,
-        minimumVersion:"0.5.0b",
+        minimumVersion:"0.5.5b",
         /**
          * jquery entities that are needed for updating
          */
@@ -60,6 +59,9 @@
         $worldMapCanvasContainer:null,
         $activeMissionServer:null,
         $settingsTimePlayed:null,
+        $settingsMissionsTaken:null,
+        $settingsMissionsSucceeded:null,
+        $settingsMissionsFailed:null,
         $settingsModal:null,
         $importExportTextarea:null,
         $computerBuildModal:null,
@@ -80,10 +82,12 @@
         $gridSizeButton:null,
         $researchModal:null,
         $researchModalBody:null,
+        $settingsAutoPurchaseCPUs:null,
         /**
          * HTML DOM elements, as opposed to jQuery entities for special cases
          */
         mapImageElement:null,
+        miniMapCanvas:null,
         bindUIElements:function()
         {
             this.$missionContainer = $('#mission-list');
@@ -103,6 +107,9 @@
             this.$worldMapCanvasContainer = $('#canvas-container');
             this.$worldMapModal.on("hide.bs.modal", ()=>{this.afterHideConnectionManager()});
             this.$settingsTimePlayed = $('#settings-time-played');
+            this.$settingsMissionsFailed = $("#settings-missions-failed");
+            this.$settingsMissionsSucceeded = $("#settings-missions-succceeded");
+            this.$settingsMissionsTaken = $('#settings-mission-taken');
             this.$settingsModal = $('#settings-modal');
             this.$importExportTextarea = $('#settings-import-export');
             this.$computerBuildModal = $('#computer-build-modal');
@@ -119,6 +126,9 @@
             this.$gridSizeCostSpan = $('#grid-size-increase-cost');
             this.$researchModal = $('#research-modal');
             this.$researchModalBody = $('#research-modal-body');
+            this.$settingsAutoPurchaseCPUs = $('#settings-autoreplace-cpus').on('change', (evt)=>{
+                this.downlink.setCPUAutoPurchase($(evt.target).prop('checked'));
+            });
 
             this.$gridSizeButton = $('#increase-cpu-grid-size').click(()=>{this.increaseCPUPoolSize()});
             this.$activeMissionDisconnectButton = $('#disconnect-button').click(()=>{this.disconnect()});
@@ -134,6 +144,7 @@
             $('#computerModalLink').click(()=>{this.showComputerBuildModal()});
             $('#connection-auto-build-button').click(()=>{this.autoBuildConnection()});
 
+            this.miniMapCanvas = document.getElementById('mini-world-map');
         },
         toggleMissions:function()
         {
@@ -175,7 +186,8 @@
                     this.mapImageElement, 0, 0,
                     this.mapImageElement.width, this.mapImageElement.height
                 );
-            this.$worldMapCanvasContainer.empty().append($(canvas));
+
+            this.$worldMapCanvasContainer.html(canvas);
             return canvas;
         },
         /**
@@ -248,6 +260,11 @@
             {
                 this.newGame();
             }
+            this.downlink.on('cpusAutoReplaced', ()=>{
+                this.updateComputerBuild();
+                this.buildComputerPartsUI();
+                this.buildComputerGrid();
+            });
 
             return this.performPostLoadCleanup();
         },
@@ -257,9 +274,13 @@
 
             this.initialised = true;
             return this.buildWorldMap().then(()=>{
-                let pc = this.downlink.getPlayerComputer();
+                let pc = this.downlink.playerComputer;
                 pc.on('cpuBurnedOut', ()=>{this.buildComputerGrid();});
                 pc.on('cpuPoolEmpty', ()=>{this.handleEmptyCPUPool();});
+                pc.on('cpusAutoReplaced', ()=>{
+
+
+                });
                 this.addComputerToWorldMap(pc);
                 this.updateComputerBuild();
                 this.buildComputerPartsUI();
@@ -294,19 +315,60 @@
         },
         updateConnectionMap:function()
         {
-            let connection = this.downlink.playerConnection;
-            let context = this.getFreshCanvas().getContext('2d');
-            let currentComputer = this.downlink.playerComputer;
-            for(let computer of connection.computers)
+            let connection = this.downlink.currentConnection,
+                context = this.getFreshCanvas().getContext('2d'),
+                mmContext = this.miniMapCanvas.getContext('2d'),
+                ratio = this.miniMapCanvas.width / context.canvas.width;
+            this.miniMapCanvas.height = context.canvas.height * ratio;
+            mmContext.drawImage(context.canvas, 0, 0, this.miniMapCanvas.width, this.miniMapCanvas.height);
+            mmContext.lineWidth = 0.4;
+
+            for(let step of connection.steps)
             {
-                // connect the current computer to the current computer in the connection
-                context.beginPath();
-                context.moveTo(currentComputer.location.x, currentComputer.location.y);
-                context.lineTo(computer.location.x, computer.location.y);
-                context.stroke();
-                // set the currentComputer to be the current computer in the connection
-                currentComputer = computer;
+                let colors = {
+                        'pristine':'#000',
+                        'traced':'#f00'
+                    };
+                if(step.state === 'tracing')
+                {
+                    this.drawPartiallyTracedStep(step, context, mmContext, ratio, colors.pristine, colors.traced);
+                }
+                else
+                {
+                    this.drawSimpleStep(step, context, mmContext, ratio, colors[step.state]);
+                }
             }
+            // place the image in the mini map
+
+        },
+        drawLineOnContext:function(context, position1, position2, color, ratio)
+        {
+            ratio = ratio?ratio:1;
+            context.beginPath();
+            context.strokeStyle = color;
+            context.moveTo(position1.x * ratio, position1.y * ratio);
+            context.lineTo(position2.x * ratio, position2.y * ratio);
+            context.stroke();
+        },
+        drawPartiallyTracedStep:function(step, context, mmContext, ratio, tracedLineColor, untracedLineColor)
+        {
+            let loc1 = step.computer1.location,
+                loc2 = step.tracePoint,
+                loc3 = step.computer2.location;
+            this.drawLineOnContext(context, loc1, loc2, tracedLineColor);
+            this.drawLineOnContext(context, loc2, loc3, untracedLineColor);
+            this.drawLineOnContext(mmContext, loc1, loc2, tracedLineColor, ratio);
+            this.drawLineOnContext(mmContext, loc2, loc3, untracedLineColor, ratio);
+
+        },
+        drawSimpleStep:function(step, context, mmContext, ratio, lineColor)
+        {
+            let loc1 = step.computer1.location,
+                loc2 = step.computer2.location;
+
+                // connect the current computer to the current computer in the connection
+            this.drawLineOnContext(context, loc1, loc2, lineColor);
+            this.drawLineOnContext(mmContext, loc1, loc2, lineColor, ratio);
         },
         start:function(){
             this.ticking = true;
@@ -465,10 +527,16 @@
             this.$activeMissionServer.show();
             this.$connectionTraced.html(0);
             this.$connectionTracePercentage.html(0);
+            $('.MissionComputer').remove();
+
             this.mission = this.downlink.getNextMission();
             this.$activeMissionTraceStrength.text(this.mission.computer.traceSpeed.toFixed(2));
             this.updateMissionInterface(this.mission);
             this.requiresNewMission = false;
+            this.updateConnectionMap();
+            this.addComputerToWorldMap(this.mission.computer);
+
+            this.$settingsMissionsTaken.text(this.downlink.missionData.taken);
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -480,12 +548,24 @@
                 this.requiresNewMission = true;
                 this.$connectionTracePercentage.html(0);
                 this.$connectionTraceBar.css('width', '0%');
+                this.$settingsMissionsSucceeded.text(this.downlink.missionData.succeeded);
                 this.save();
+            }).on('hackTracked',()=>{
+                this.updatePlayerDetails();
+                this.updateComputerPartsUI();
+                this.updateCompanyStates([this.mission.sponsor, this.mission.target]);
+                this.requiresNewMission = true;
+                this.$settingsMissionsFailed.text(this.downlink.missionData.failed);
+                this.$connectionTracePercentage.html(100);
+                this.$connectionTraceBar.css('width', '100%');
+                this.mission.off();
             }).on("connectionStepTraced", (stepsTraced)=>{
                 this.$connectionTraced.html(stepsTraced);
+                this.updateConnectionMap();
             }).on("updateTracePercentage", (percentageTraced)=>{
                 this.$connectionTracePercentage.html(percentageTraced);
                 this.$connectionTraceBar.css('width', percentageTraced+'%');
+                this.updateConnectionMap();
             });
 
         },

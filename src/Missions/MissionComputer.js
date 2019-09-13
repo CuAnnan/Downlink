@@ -1,8 +1,8 @@
-const   Computer = require('../Computers/Computer');
+const   MechanicalComputer = require('../Computers/MechanicalComputer');
 let  DIFFICULTY_EXPONENT = 1.8;
 
 
-class MissionComputer extends Computer
+class MissionComputer extends MechanicalComputer
 {
     constructor(company, serverType)
     {
@@ -30,11 +30,6 @@ class MissionComputer extends Computer
          * @type {Connection}
          */
         this.currentPlayerConnection = null;
-        /**
-         * The  connection by which the player last accessed this computer
-         * @type {Connection}
-         */
-        this.previousPlayerConnection = null;
         /**
          * Whether or not the administrator of this computer should have been alerted as to the breach
          * @type {boolean}
@@ -76,10 +71,9 @@ class MissionComputer extends Computer
     connect(connection)
     {
         super.connect();
-        let clone = connection.clone();
-        clone.setEndPoint(this);
-
-        clone
+        let clone = connection.clone()
+            .setEndPoint(this)
+            .reverse()
             .once("connectionTraced", ()=>{
                 this.trigger('hackTracked');
             }).on('stepTraced',(step)=>{
@@ -111,13 +105,12 @@ class MissionComputer extends Computer
     {
         if(connection.equals(this.currentPlayerConnection))
         {
-            this.resumeTraceback();
+            this.resumeTraceBack();
         }
         else
         {
             this.connect(connection);
         }
-        this.currentPlayerConnection.open();
         return this;
     }
 
@@ -187,7 +180,7 @@ class MissionComputer extends Computer
         this.tracingConnection = true;
     }
 
-    resumeTraceback()
+    resumeTraceBack()
     {
         this.currentPlayerConnection.reconnect();
         this.tracingConnection = true;

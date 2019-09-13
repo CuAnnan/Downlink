@@ -2,9 +2,9 @@ const   Task = require('./Tasks/Task'),
         Upgradeable = require('../Upgradeable'),
         cpus = require('./cpus');
 
-class CPUFullError extends Error{};
-class CPUDuplicateTaskError extends Error{};
-class InvalidTaskError extends Error{};
+class CPUFullError extends Error{}
+class CPUDuplicateTaskError extends Error{}
+class InvalidTaskError extends Error{}
 
 const CPU_COST_MODIFIER = 4000;
 
@@ -101,6 +101,16 @@ class CPU extends Upgradeable
     static getCPUs()
     {
         return cpus;
+    }
+
+    static getCPUByName(name)
+    {
+        let cpuData = cpus.filter(cpu=>{return cpu.name === name});
+        if(!cpuData.length)
+        {
+            throw new Error('No CPU found');
+        }
+        return this.fromJSON(cpuData);
     }
 
     tick(load)

@@ -45,7 +45,7 @@ class Alphabet
     {
         return [...alphabetGrid];
     }
-};
+}
 
 Alphabet.build();
 
