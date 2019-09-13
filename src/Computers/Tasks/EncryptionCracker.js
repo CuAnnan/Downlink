@@ -118,13 +118,8 @@ class EncryptionCracker extends Task
     setCyclesPerTick(cyclesPerTick)
     {
         super.setCyclesPerTick(cyclesPerTick);
+        this.attacksPerTick = Math.floor(Math.pow(Math.min(this.cols, this.rows), 1/Math.pow(this.challenge.difficulty, 1.5)));
         return this;
-    }
-
-    get attacksPerTick()
-    {
-        let attacksPerTick = this.cyclesPerTick / (this.unsolvedCells.length * Math.pow(this.challenge.difficulty, 2));
-        return attacksPerTick;
     }
 
     processTick()

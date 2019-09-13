@@ -2184,6 +2184,16 @@ class CPU extends Upgradeable
         return cpus;
     }
 
+    static getCPUByName(name)
+    {
+        let cpuData = cpus.filter(cpu=>{return cpu.name === name});
+        if(!cpuData.length)
+        {
+            throw new Error('No CPU found');
+        }
+        return this.fromJSON(cpuData);
+    }
+
     tick(load)
     {
         this.lifeCycleUsed += load;
@@ -2325,9 +2335,9 @@ class CPUPool extends EventListener
         }
     }
 
-    flagCPUDead()
+    flagCPUDead(slot, cpu)
     {
-        this.trigger('cpuBurnedOut');
+        this.trigger('cpuBurnedOut', slot, cpu);
         this.update();
         if(this.cpuCount === 0)
         {
@@ -2695,8 +2705,8 @@ class PlayerComputer extends MechanicalComputer
     {
         super('Home', null, '127.0.0.1');
         this.cpuPool = new CPUPool(cpus, maxCPUs?maxCPUs:DEFAULT_MAX_CPUS);
-        this.cpuPool.on('cpuBurnedOut', ()=>{
-            this.trigger('cpuBurnedOut');
+        this.cpuPool.on('cpuBurnedOut', (slot, cpu)=>{
+            this.trigger('cpuBurnedOut', slot, cpu);
         }).on("cpuPoolEmpty", ()=>{
             this.trigger('cpuPoolEmpty');
         });
@@ -3163,13 +3173,8 @@ class EncryptionCracker extends Task
     setCyclesPerTick(cyclesPerTick)
     {
         super.setCyclesPerTick(cyclesPerTick);
+        this.attacksPerTick = Math.floor(Math.pow(Math.min(this.cols, this.rows), 1/Math.pow(this.challenge.difficulty, 1.5)));
         return this;
-    }
-
-    get attacksPerTick()
-    {
-        let attacksPerTick = this.cyclesPerTick / (this.unsolvedCells.length * Math.pow(this.challenge.difficulty, 2));
-        return attacksPerTick;
     }
 
     processTick()
@@ -4040,6 +4045,12 @@ class Downlink extends EventListener
         this.playerConnection = null;
         this.runTime = 0;
         this.lastTickTime = Date.now();
+        this.missionData = {
+            taken:0,
+            failed:0,
+            succeeded:0
+        };
+        this.autoPurchaseCPUs = false;
         /**
          * @type {Decimal}
          */
@@ -4058,8 +4069,13 @@ class Downlink extends EventListener
         {
             this.setPlayerComputer(location);
         }
-        this.playerComputer.on('cpuPoolEmpty', ()=>{
+        this.playerComputer.once('cpuPoolEmpty', ()=>{
             this.trigger('cpuPoolEmpty');
+        }).on('cpuBurnedOut', (slot, cpu)=>{
+            if(this.autoPurchaseCPUs)
+            {
+                this.autoBuyCPU(cpu, slot);
+            }
         });
         return this.playerComputer;
     }
@@ -4086,14 +4102,16 @@ class Downlink extends EventListener
         {
             return null;
         }
-
+        this.missionData.taken ++;
         this.activeMission = MissionGenerator.getFirstAvailableMission()
             .on("complete", ()=>{
                 this.finishCurrentMission(this.activeMission);
                 this.activeMission = null;
+                this.missionData.succeeded++;
                 this.trigger('missionComplete');
             })
             .on("hackTracked", ()=>{
+                this.missionData.failed++;
                 this.playerComputer.clearMissionTasks();
             });
         this.activeMission.computer.connect(this.playerConnection);
@@ -4219,6 +4237,8 @@ class Downlink extends EventListener
             currency:this.currency.toString(),
             runTime:this.runTime,
             researches:Research.categoryResearches,
+            missionData:this.missionData,
+            autoPurchaseCPUs:this.autoPurchaseCPUs
         };
         for(let company of this.companies)
         {
@@ -4238,6 +4258,8 @@ class Downlink extends EventListener
         downlink.playerComputer = ComputerGenerator.fromJSON(json.playerComputer);
         downlink.runTime = parseInt(json.runTime);
         downlink.lastTickTime = Date.now();
+        downlink.missionData = json.missionData;
+        downlink.autoPurchaseCPUs = json.autoPurchaseCPUs;
 
 
         downlink.playerConnection = Connection.fromJSON(json.playerConnection);
@@ -4278,6 +4300,16 @@ class Downlink extends EventListener
     canAfford(cost)
     {
         return this.currency.greaterThan(cost);
+    }
+
+    autoBuyCPU(cpuData, slot)
+    {
+        let cpu = CPU.getCPUByName(cpuData.name);
+        this.currency = this.currency.minus(CPU.getPriceFor(cpuData) * 1.5);
+        this.playerComputer
+            .setCPUSlot(slot, cpu)
+            .updateLoadBalance();
+        this.trigger('cpusAutoReplaced');
     }
 
     buyCPU(cpuData, slot)
@@ -4325,6 +4357,12 @@ class Downlink extends EventListener
     {
         return this.playerComputer.currentCPUTasks;
     }
+
+    setCPUAutoPurchase(autoPurchase)
+    {
+        this.autoPurchaseCPUs = autoPurchase;
+    }
+
 }
 
 module.exports = Downlink;
@@ -4590,6 +4628,9 @@ module.exports = EventListener;
         $worldMapCanvasContainer:null,
         $activeMissionServer:null,
         $settingsTimePlayed:null,
+        $settingsMissionsTaken:null,
+        $settingsMissionsSucceeded:null,
+        $settingsMissionsFailed:null,
         $settingsModal:null,
         $importExportTextarea:null,
         $computerBuildModal:null,
@@ -4610,6 +4651,7 @@ module.exports = EventListener;
         $gridSizeButton:null,
         $researchModal:null,
         $researchModalBody:null,
+        $settingsAutoPurchaseCPUs:null,
         /**
          * HTML DOM elements, as opposed to jQuery entities for special cases
          */
@@ -4634,6 +4676,9 @@ module.exports = EventListener;
             this.$worldMapCanvasContainer = $('#canvas-container');
             this.$worldMapModal.on("hide.bs.modal", ()=>{this.afterHideConnectionManager()});
             this.$settingsTimePlayed = $('#settings-time-played');
+            this.$settingsMissionsFailed = $("#settings-missions-failed");
+            this.$settingsMissionsSucceeded = $("#settings-missions-succceeded");
+            this.$settingsMissionsTaken = $('#settings-mission-taken');
             this.$settingsModal = $('#settings-modal');
             this.$importExportTextarea = $('#settings-import-export');
             this.$computerBuildModal = $('#computer-build-modal');
@@ -4650,6 +4695,9 @@ module.exports = EventListener;
             this.$gridSizeCostSpan = $('#grid-size-increase-cost');
             this.$researchModal = $('#research-modal');
             this.$researchModalBody = $('#research-modal-body');
+            this.$settingsAutoPurchaseCPUs = $('#settings-autoreplace-cpus').on('change', (evt)=>{
+                this.downlink.setCPUAutoPurchase($(evt.target).prop('checked'));
+            });
 
             this.$gridSizeButton = $('#increase-cpu-grid-size').click(()=>{this.increaseCPUPoolSize()});
             this.$activeMissionDisconnectButton = $('#disconnect-button').click(()=>{this.disconnect()});
@@ -4708,7 +4756,7 @@ module.exports = EventListener;
                     this.mapImageElement.width, this.mapImageElement.height
                 );
 
-            this.$worldMapCanvasContainer[0].innerHTML = canvas;
+            this.$worldMapCanvasContainer.html(canvas);
             return canvas;
         },
         /**
@@ -4781,6 +4829,11 @@ module.exports = EventListener;
             {
                 this.newGame();
             }
+            this.downlink.on('cpusAutoReplaced', ()=>{
+                this.updateComputerBuild();
+                this.buildComputerPartsUI();
+                this.buildComputerGrid();
+            });
 
             return this.performPostLoadCleanup();
         },
@@ -4790,9 +4843,13 @@ module.exports = EventListener;
 
             this.initialised = true;
             return this.buildWorldMap().then(()=>{
-                let pc = this.downlink.getPlayerComputer();
+                let pc = this.downlink.playerComputer;
                 pc.on('cpuBurnedOut', ()=>{this.buildComputerGrid();});
                 pc.on('cpuPoolEmpty', ()=>{this.handleEmptyCPUPool();});
+                pc.on('cpusAutoReplaced', ()=>{
+
+
+                });
                 this.addComputerToWorldMap(pc);
                 this.updateComputerBuild();
                 this.buildComputerPartsUI();
@@ -5048,6 +5105,7 @@ module.exports = EventListener;
             this.updateConnectionMap();
             this.addComputerToWorldMap(this.mission.computer);
 
+            this.$settingsMissionsTaken.text(this.downlink.missionData.taken);
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -5059,13 +5117,14 @@ module.exports = EventListener;
                 this.requiresNewMission = true;
                 this.$connectionTracePercentage.html(0);
                 this.$connectionTraceBar.css('width', '0%');
+                this.$settingsMissionsSucceeded.text(this.downlink.missionData.succeeded);
                 this.save();
             }).on('hackTracked',()=>{
                 this.updatePlayerDetails();
                 this.updateComputerPartsUI();
                 this.updateCompanyStates([this.mission.sponsor, this.mission.target]);
                 this.requiresNewMission = true;
-
+                this.$settingsMissionsFailed.text(this.downlink.missionData.failed);
                 this.$connectionTracePercentage.html(100);
                 this.$connectionTraceBar.css('width', '100%');
                 this.mission.off();

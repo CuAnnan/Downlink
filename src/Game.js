@@ -59,6 +59,9 @@
         $worldMapCanvasContainer:null,
         $activeMissionServer:null,
         $settingsTimePlayed:null,
+        $settingsMissionsTaken:null,
+        $settingsMissionsSucceeded:null,
+        $settingsMissionsFailed:null,
         $settingsModal:null,
         $importExportTextarea:null,
         $computerBuildModal:null,
@@ -79,6 +82,7 @@
         $gridSizeButton:null,
         $researchModal:null,
         $researchModalBody:null,
+        $settingsAutoPurchaseCPUs:null,
         /**
          * HTML DOM elements, as opposed to jQuery entities for special cases
          */
@@ -103,6 +107,9 @@
             this.$worldMapCanvasContainer = $('#canvas-container');
             this.$worldMapModal.on("hide.bs.modal", ()=>{this.afterHideConnectionManager()});
             this.$settingsTimePlayed = $('#settings-time-played');
+            this.$settingsMissionsFailed = $("#settings-missions-failed");
+            this.$settingsMissionsSucceeded = $("#settings-missions-succceeded");
+            this.$settingsMissionsTaken = $('#settings-mission-taken');
             this.$settingsModal = $('#settings-modal');
             this.$importExportTextarea = $('#settings-import-export');
             this.$computerBuildModal = $('#computer-build-modal');
@@ -119,6 +126,9 @@
             this.$gridSizeCostSpan = $('#grid-size-increase-cost');
             this.$researchModal = $('#research-modal');
             this.$researchModalBody = $('#research-modal-body');
+            this.$settingsAutoPurchaseCPUs = $('#settings-autoreplace-cpus').on('change', (evt)=>{
+                this.downlink.setCPUAutoPurchase($(evt.target).prop('checked'));
+            });
 
             this.$gridSizeButton = $('#increase-cpu-grid-size').click(()=>{this.increaseCPUPoolSize()});
             this.$activeMissionDisconnectButton = $('#disconnect-button').click(()=>{this.disconnect()});
@@ -177,7 +187,7 @@
                     this.mapImageElement.width, this.mapImageElement.height
                 );
 
-            this.$worldMapCanvasContainer[0].innerHTML = canvas;
+            this.$worldMapCanvasContainer.html(canvas);
             return canvas;
         },
         /**
@@ -250,6 +260,11 @@
             {
                 this.newGame();
             }
+            this.downlink.on('cpusAutoReplaced', ()=>{
+                this.updateComputerBuild();
+                this.buildComputerPartsUI();
+                this.buildComputerGrid();
+            });
 
             return this.performPostLoadCleanup();
         },
@@ -259,9 +274,13 @@
 
             this.initialised = true;
             return this.buildWorldMap().then(()=>{
-                let pc = this.downlink.getPlayerComputer();
+                let pc = this.downlink.playerComputer;
                 pc.on('cpuBurnedOut', ()=>{this.buildComputerGrid();});
                 pc.on('cpuPoolEmpty', ()=>{this.handleEmptyCPUPool();});
+                pc.on('cpusAutoReplaced', ()=>{
+
+
+                });
                 this.addComputerToWorldMap(pc);
                 this.updateComputerBuild();
                 this.buildComputerPartsUI();
@@ -517,6 +536,7 @@
             this.updateConnectionMap();
             this.addComputerToWorldMap(this.mission.computer);
 
+            this.$settingsMissionsTaken.text(this.downlink.missionData.taken);
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -528,13 +548,14 @@
                 this.requiresNewMission = true;
                 this.$connectionTracePercentage.html(0);
                 this.$connectionTraceBar.css('width', '0%');
+                this.$settingsMissionsSucceeded.text(this.downlink.missionData.succeeded);
                 this.save();
             }).on('hackTracked',()=>{
                 this.updatePlayerDetails();
                 this.updateComputerPartsUI();
                 this.updateCompanyStates([this.mission.sponsor, this.mission.target]);
                 this.requiresNewMission = true;
-
+                this.$settingsMissionsFailed.text(this.downlink.missionData.failed);
                 this.$connectionTracePercentage.html(100);
                 this.$connectionTraceBar.css('width', '100%');
                 this.mission.off();

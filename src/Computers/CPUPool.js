@@ -100,9 +100,9 @@ class CPUPool extends EventListener
         }
     }
 
-    flagCPUDead()
+    flagCPUDead(slot, cpu)
     {
-        this.trigger('cpuBurnedOut');
+        this.trigger('cpuBurnedOut', slot, cpu);
         this.update();
         if(this.cpuCount === 0)
         {

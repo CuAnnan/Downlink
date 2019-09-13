@@ -103,6 +103,16 @@ class CPU extends Upgradeable
         return cpus;
     }
 
+    static getCPUByName(name)
+    {
+        let cpuData = cpus.filter(cpu=>{return cpu.name === name});
+        if(!cpuData.length)
+        {
+            throw new Error('No CPU found');
+        }
+        return this.fromJSON(cpuData);
+    }
+
     tick(load)
     {
         this.lifeCycleUsed += load;

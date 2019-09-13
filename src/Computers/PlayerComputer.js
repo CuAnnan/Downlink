@@ -18,8 +18,8 @@ class PlayerComputer extends MechanicalComputer
     {
         super('Home', null, '127.0.0.1');
         this.cpuPool = new CPUPool(cpus, maxCPUs?maxCPUs:DEFAULT_MAX_CPUS);
-        this.cpuPool.on('cpuBurnedOut', ()=>{
-            this.trigger('cpuBurnedOut');
+        this.cpuPool.on('cpuBurnedOut', (slot, cpu)=>{
+            this.trigger('cpuBurnedOut', slot, cpu);
         }).on("cpuPoolEmpty", ()=>{
             this.trigger('cpuPoolEmpty');
         });
