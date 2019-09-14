@@ -1,6 +1,6 @@
 {
   "name": "downlink",
-  "version": "1.0.0",
+  "version": "0.5.9b",
   "description": "initial build of Downlink idle game",
   "main": "index.html",
   "dependencies": {
