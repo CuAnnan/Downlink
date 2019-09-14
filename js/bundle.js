@@ -5163,7 +5163,7 @@ module.exports = EventListener;
                     <div class="col-2 ${COMPANY_SECURITY_CLASS}">${company.securityLevel.toFixed(2)}</div>
                 </div>`;
             }
-            this.$playerStandingsTitle.after(html);
+            this.$playerStandingsContainer.html(html);
         },
         updateComputerBuild:function()
         {
