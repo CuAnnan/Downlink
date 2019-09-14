@@ -4622,7 +4622,7 @@ module.exports = EventListener;
         $playerCurrencySpan:null,
         $playerStandingsTitle:null,
         $playerStandingsContainer:null,
-        $playerComputerCPUListContainer:null,
+        $playerComputerPartsTitle:null,
         $worldMapModal:null,
         $worldMapContainer:null,
         $worldMapCanvasContainer:null,
@@ -4670,7 +4670,7 @@ module.exports = EventListener;
             this.$playerCurrencySpan = $('#player-currency');
             this.$playerStandingsTitle = $('#player-company-standings-title');
             this.$playerStandingsContainer = $('#player-company-standings');
-            this.$playerComputerCPUListContainer = $('#player-computer-processors');
+            this.$playerComputerPartsTitle = $('#player-computer-processors-title');
             this.$worldMapModal = $('#connection-modal');
             this.$worldMapContainer = $('#world-map');
             this.$worldMapCanvasContainer = $('#canvas-container');
@@ -5168,19 +5168,20 @@ module.exports = EventListener;
         updateComputerBuild:function()
         {
             $(`.${PLAYER_COMPUTER_CPU_ROW_CLASS}`).remove();
-
+            let $lastRow = this.$playerComputerPartsTitle;
             for(let cpu of this.downlink.playerComputer.cpus)
             {
                 if(cpu)
                 {
                     let $row = $(`<div class="row ${PLAYER_COMPUTER_CPU_ROW_CLASS}">
                         <div class="col">${cpu.name}</div>
-                        <div class="col-2">${cpu.speed}MHz</div>
-                        <div class="col-5 cpu-remaining-cycle">${cpu.remainingLifeCycle}</div>
-                    </div>`).appendTo(this.$playerComputerCPUListContainer);
+                        <div class="col-3">${cpu.speed}MHz</div>
+                        <div class="col-2 cpu-remaining-cycle">${cpu.remainingLifeCycle}</div>
+                    </div>`).insertAfter($lastRow);
                     cpu.on('lifeCycleUpdated', ()=>{
                         $('.cpu-remaining-cycle', $row).html(cpu.health?cpu.health:"Dead");
                     });
+                    $lastRow = $row;
                 }
             }
         },
@@ -5493,12 +5494,16 @@ module.exports = EventListener;
             for(let researchType in availableResearch)
             {
                 html += `<h2 class="row">${researchType} (${availableResearch[researchType].length})</h2><div class="container-fluid">`;
-
+                html += `<div class="row" style="font-weight: bold">
+                    <div class="col">Research Task</div>
+                    <div class="col-2">Cycles</div>
+                    <div class="col-3">Research</div>
+                </div>`
                 for(let researchItem of availableResearch[researchType])
                 {
                     html += `<div class="row">
                         <div class="col">${researchItem.name}</div>
-                        <div class="col-1">${researchItem.researchTicks}</div>
+                        <div class="col-2">${researchItem.researchTicks}</div>
                         <div class="col-3">
                             <button data-research-item="${researchItem.name}" class="research-start-button btn btn-sm btn-primary" data-toggle="tooltip" data-html="true" title="<ul>`;
                             for(let property of researchItem.propertiesEffected)
