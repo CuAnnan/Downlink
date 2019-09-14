@@ -825,6 +825,11 @@
                 $node.removeClass('affordable-part unaffordable-part').addClass(
                     (canAfford?'':'un')+'affordable-part'
                 );
+                if(!canAfford)
+                {
+                    $node.removeClass('chosenPart');
+                    this.chosenPart = null;
+                }
             });
         },
         getCPUIncreaseCost:function()

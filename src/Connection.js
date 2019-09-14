@@ -103,7 +103,7 @@ class ConnectionStep extends EventListener
     }
 
 }
-ConnectionStep.distance = 25;
+ConnectionStep.distance = 20;
 ConnectionStep.states = {'pristine':'pristine','tracing':'tracing', 'traced':'traced'};
 ConnectionStep.events = {'stepTraced':'stepTraced'};
 
