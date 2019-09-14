@@ -39,7 +39,7 @@
             <a class="game-link" id="connectionModalLink" href="#">Connection Manager</a> |
             <a class="game-link" id="computerModalLink" href="#">Computer Build</a> |
             <a class="game-link" id="researchModalLink" href="#">Research</a> |
-            <a class="game-link" id="settingsModalLink" href="#">Settings</a>
+            <a class="game-link" id="settingsModalLink" href="#">Misc</a>
         </nav></div>
         <div class="row" id="missionInterface">
             <div class="col-6 col-lg-3" id="player-details">
@@ -49,21 +49,21 @@
                     <div class="col text-right" id="player-currency">0.00</div>
                 </div>
                 <h3 class="row">Company Details</h3>
+                <div class="row" id="player-company-standings-title">
+                    <div class="col">Company name</div>
+                    <div class="col-lg-2 col-3" title="Your standing with the company"><i class="far fa-comments"></i></div>
+                    <div class="col-lg-2 col-3" title="The company's security level"><i class="fas fa-key"></i></div>
+                </div>
                 <div id="player-company-standings">
-                    <div class="row" id="player-company-standings-title">
-                        <div class="col">Company name</div>
-                        <div class="col-lg-2 col-3" title="Your standing with the company"><i class="far fa-comments"></i></div>
-                        <div class="col-lg-2 col-3" title="The company's security level"><i class="fas fa-key"></i></div>
-                    </div>
+
                 </div>
                 <h3 class="row">Your PC</h3>
 
-                <div class="row">
+                <div class="row" id="player-computer-processors-title">
                     <div class="col"><strong>Processor</strong></div>
-                    <div class="col-2"><strong>Speed</strong></div>
-                    <div class="col-5"><strong>CPU Health</strong></div>
+                    <div class="col-3" title="CPU Speed"><i class="fas fa-tachometer-alt"></i></div>
+                    <div class="col-2" title="CPU Health"><i class="fas fa-heartbeat"></i></div>
                 </div>
-                <div id="player-computer-processors"></div>
             </div>
 
             <div class="col-6 col-lg-3" id="mission-list">
@@ -113,10 +113,10 @@
                 <div id="active-mission-machine-details" class="container-fluid">
                     <h2 class="row">Server details:</h2>
                     <div class="row"><div class="col">
-                        <strong>Name: </strong><span id="active-mission-server-name"></span>
+                        <strong>Hostname</strong>: </strong><span id="active-mission-server-name"></span>
                     </div></div>
                     <div class="row"><div class="col">
-                        <strong>ip address: </strong><span id="active-mission-server-ip-address"></span>
+                        <strong>IP address: </strong><span id="active-mission-server-ip-address"></span>
                     </div></div>
                     <div class="row"><div class="col">
                         <strong>Connection Trace Strength: </strong>
@@ -137,6 +137,7 @@
         <div class="fixed-bottom text-right">
             <nav>
                 Version: <span id="game-version"></span> |
+                <a href="release-notes.html" target="_blank">Release Notes</a> |
                 <a href="https://www.reddit.com/r/Downlink_Idle_Game/" target="_blank">Reddit</a> |
                 <a href="https://discord.gg/kKRXMwz" target="_blank">Discord</a> |
                 <a href="https://github.com/CuAnnan/Downlink" target="_blank">Github</a>
@@ -168,7 +169,7 @@
         <div class="modal-dialog modal-dialog-centered modal-xl" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Settings</h5>
+                    <h5 class="modal-title">Miscellaneous</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -177,7 +178,12 @@
                     <div class="container-fluid">
                         <h4 class="row">About</h4>
                         <div class="row"><div class="col">Downlink is roughly inspired by the 2000 Introversion hacking game. There's a more complete schpiel about it on the github's home page (link at bottom right of normal page).</div></div>
-                        <div class="row"><div class="col">You have been playing for <span id="settings-time-played"></span> seconds and in that time you have taken <span id="settings-mission-taken"></span>, <span id="settings-missions-succceeded">0</span> of which you have succeeded, <span id="settings-missions-failed">0</span> of which you have failed.</div></div>
+                    </div>
+                    <div class="container">
+                        <h4 class="row">Stats</h4>
+                        <div class="row"><div class="col">You have been playing for <span id="settings-time-played"></span> seconds and in that time you have taken <span id="settings-mission-taken"></span> missions, <span id="settings-missions-succceeded">0</span> of which you have succeeded, <span id="settings-missions-failed">0</span> of which you have failed.</div></div>
+                    </div>
+                    <div class="container">
                         <h4 class="row">Import/export</h4>
                         <div class="row"><div class="col"><textarea id="settings-import-export"></textarea></div></div>
                         <div class="row"><div class="col">
