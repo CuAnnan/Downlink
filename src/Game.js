@@ -35,7 +35,7 @@
         mission:false,
         computer:null,
         downlink:null,
-        version:"0.5.6b",
+        version:"0.5.7b",
         requiresHardReset:true,
         canTakeMissions:true,
         requiresNewMission:true,
@@ -271,16 +271,13 @@
         performPostLoadCleanup:function()
         {
             this.updatePlayerDetails();
-
+            this.updateMissionData();
             this.initialised = true;
             return this.buildWorldMap().then(()=>{
                 let pc = this.downlink.playerComputer;
                 pc.on('cpuBurnedOut', ()=>{this.buildComputerGrid();});
                 pc.on('cpuPoolEmpty', ()=>{this.handleEmptyCPUPool();});
-                pc.on('cpusAutoReplaced', ()=>{
-
-
-                });
+                pc.on('cpusAutoReplaced', ()=>{});
                 this.addComputerToWorldMap(pc);
                 this.updateComputerBuild();
                 this.buildComputerPartsUI();
@@ -519,6 +516,12 @@
 
             }
         },
+        updateMissionData:function()
+        {
+            this.$settingsMissionsTaken.text(this.downlink.missionData.taken);
+            this.$settingsMissionsSucceeded.text(this.downlink.missionData.succeeded);
+            this.$settingsMissionsFailed.text(this.downlink.missionData.failed);
+        },
         getNextMission:function(){
             if(!this.takingMissions)
             {
@@ -535,8 +538,7 @@
             this.requiresNewMission = false;
             this.updateConnectionMap();
             this.addComputerToWorldMap(this.mission.computer);
-
-            this.$settingsMissionsTaken.text(this.downlink.missionData.taken);
+            this.updateMissionData();
 
             this.downlink
                 .on("challengeSolved", (task)=>{this.updateChallenge(task)});
@@ -548,16 +550,16 @@
                 this.requiresNewMission = true;
                 this.$connectionTracePercentage.html(0);
                 this.$connectionTraceBar.css('width', '0%');
-                this.$settingsMissionsSucceeded.text(this.downlink.missionData.succeeded);
+                this.updateMissionData();
                 this.save();
             }).on('hackTracked',()=>{
                 this.updatePlayerDetails();
                 this.updateComputerPartsUI();
                 this.updateCompanyStates([this.mission.sponsor, this.mission.target]);
                 this.requiresNewMission = true;
-                this.$settingsMissionsFailed.text(this.downlink.missionData.failed);
                 this.$connectionTracePercentage.html(100);
                 this.$connectionTraceBar.css('width', '100%');
+                this.updateMissionData();
                 this.mission.off();
             }).on("connectionStepTraced", (stepsTraced)=>{
                 this.$connectionTraced.html(stepsTraced);
