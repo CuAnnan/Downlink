@@ -11,7 +11,11 @@
             COMPANY_SECURITY_CLASS = 'company-security-col',
             COMPANY_REP_VALUE_CLASS = 'company-rep-col',
             CPU_MISSION_TASK = 'cpu-mission-task',
-            PLAYER_COMPUTER_CPU_ROW_CLASS = "cpu-row";
+            PLAYER_COMPUTER_CPU_ROW_CLASS = "cpu-row",
+            ACTIVE_TICKS_CLASS = 'active-bonus-ticks',
+            PACKAGE_JSON = require('../package.json'),
+            TICKS_TO_CHECK_FOR_NEW_VERSION = 300,
+            SAVE_TICK_CHECK = 100;
 
     function parseVersionNumber(versionNumberAsString)
     {
@@ -35,11 +39,12 @@
         mission:false,
         computer:null,
         downlink:null,
-        version:"0.5.7b",
+        version:PACKAGE_JSON.version,
         requiresHardReset:true,
         canTakeMissions:true,
         requiresNewMission:true,
         minimumVersion:"0.5.5b",
+        updateCheckTick:0,
         /**
          * jquery entities that are needed for updating
          */
@@ -83,6 +88,10 @@
         $researchModal:null,
         $researchModalBody:null,
         $settingsAutoPurchaseCPUs:null,
+        $newVersionNumber:null,
+        $updateAvailableSpan:null,
+        $bonusTickButtons:null,
+        $bonusTicksAmount:null,
         /**
          * HTML DOM elements, as opposed to jQuery entities for special cases
          */
@@ -126,6 +135,8 @@
             this.$gridSizeCostSpan = $('#grid-size-increase-cost');
             this.$researchModal = $('#research-modal');
             this.$researchModalBody = $('#research-modal-body');
+            this.$newVersionNumber = $('#new-version-number');
+            this.$updateAvailableSpan = $('#update-available');
             this.$settingsAutoPurchaseCPUs = $('#settings-autoreplace-cpus').on('change', (evt)=>{
                 this.downlink.setCPUAutoPurchase($(evt.target).prop('checked'));
             });
@@ -133,6 +144,12 @@
             this.$gridSizeButton = $('#increase-cpu-grid-size').click(()=>{this.increaseCPUPoolSize()});
             this.$activeMissionDisconnectButton = $('#disconnect-button').click(()=>{this.disconnect()});
             this.$missionToggleButton = $('#missions-toggle-button').click(()=>{this.toggleMissions();});
+            this.$bonusTickButtons = $('.bonus-tick-button').click((evt)=>{
+                this.setTickBonus(parseInt(evt.target.dataset.tickSpeedModifier));
+                $(`.${ACTIVE_TICKS_CLASS}`).removeClass(ACTIVE_TICKS_CLASS);
+                $(evt.target).addClass(ACTIVE_TICKS_CLASS);
+            });
+            this.$bonusTicksAmount = $('#bonus-ticks-amount');
 
             $('#settings-export-button').click(()=>{this.$importExportTextarea.val(this.save());});
             $('#settings-import-button').click(()=>{this.importFile(this.$importExportTextarea.val())});
@@ -145,6 +162,10 @@
             $('#connection-auto-build-button').click(()=>{this.autoBuildConnection()});
 
             this.miniMapCanvas = document.getElementById('mini-world-map');
+        },
+        setTickBonus:function(amount)
+        {
+            this.downlink.setTickBonus(amount);
         },
         toggleMissions:function()
         {
@@ -217,6 +238,17 @@
         loadGame:function(json)
         {
             this.downlink = Downlink.fromJSON(json);
+            if(this.downlink.bonusTicks)
+            {
+                console.log(this.downlink.bonusTicks);
+                this.$bonusTicksAmount.text(this.downlink.bonusTicks);
+                this.$bonusTickButtons.removeAttr('disabled');
+            }
+            else
+            {
+                this.$bonusTicksAmount.text(0);
+                this.$bonusTickButtons.not(":eq(0)").attr('disabled', 'disabled');
+            }
         },
         saveFile:function()
         {
@@ -250,7 +282,7 @@
         initialise:function()
         {
             this.bindUIElements();
-
+            this.checkForNewVersion();
             let saveFile = this.load();
             if (saveFile && !this.needsHardReset(saveFile))
             {
@@ -394,6 +426,13 @@
             if (this.ticking)
             {
                 let tickResults = this.downlink.tick();
+                this.$bonusTicksAmount.text(tickResults.bonusTicks);
+                if(tickResults.bonusTicks === 0)
+                {
+                    this.$bonusTickButtons.not(":eq(0)").attr('disabled', 'disabled');
+                    $(`.${ACTIVE_TICKS_CLASS}`).removeClass(ACTIVE_TICKS_CLASS);
+                    this.$bonusTickButtons.first().addClass(ACTIVE_TICKS_CLASS);
+                }
                 this.animateTasks(tickResults.tasks);
                 this.$settingsTimePlayed.html(this.getRunTime());
                 if (this.takingMissions && this.requiresNewMission)
@@ -401,6 +440,15 @@
                     this.getNextMission();
                 }
                 this.interval = window.setTimeout(() => {this.tick()}, TICK_INTERVAL_LENGTH);
+            }
+            this.updateCheckTick++;
+            if(this.updateCheckTick%TICKS_TO_CHECK_FOR_NEW_VERSION === 0)
+            {
+                this.checkForNewVersion();
+            }
+            if(this.updateCheckTick%SAVE_TICK_CHECK)
+            {
+                this.save();
             }
         },
         animateTasks:function(tasks)
@@ -720,6 +768,18 @@
         {
             this.stop();
             localStorage.removeItem('saveFile');
+        },
+        checkForNewVersion()
+        {
+            $.get('./package.json', (response)=>{
+                let versionOnServer = parseVersionNumber(response.version),
+                    currentVersion = parseVersionNumber(this.version);
+                if(versionOnServer > currentVersion)
+                {
+                    this.$newVersionNumber.text(response.version);
+                    this.$updateAvailableSpan.fadeIn('slow');
+                }
+            });
         },
         getJSON:function()
         {

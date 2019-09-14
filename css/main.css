@@ -194,3 +194,19 @@ h2
 {
     font-size:1.5rem;
 }
+
+#update-available
+{
+    display:none;
+}
+
+#update-available-text
+{
+    background-color: orange;
+}
+
+.active-bonus-ticks
+{
+    font-weight:bold;
+    text-decoration:underline;
+}

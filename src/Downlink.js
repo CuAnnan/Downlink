@@ -29,11 +29,13 @@ class Downlink extends EventListener
         this.playerConnection = null;
         this.runTime = 0;
         this.lastTickTime = Date.now();
+        this.tickBonus = 1;
         this.missionData = {
             taken:0,
             failed:0,
             succeeded:0
         };
+        this.bonusTicks = 0;
         this.autoPurchaseCPUs = false;
         /**
          * @type {Decimal}
@@ -68,15 +70,32 @@ class Downlink extends EventListener
     {
         let now = Date.now();
         this.runTime += now - this.lastTickTime;
-
-        let tasks = this.playerComputer.tick();
-        if(this.activeMission)
-        {
-            this.activeMission.tick();
+        let tasks = null;
+        for(let i = 0; i < this.tickBonus; i++) {
+            tasks = this.playerComputer.tick();
+            if (this.activeMission) {
+                this.activeMission.tick();
+            }
+            this.lastTickTime = Date.now();
+            let tickCost = 0;
+            switch(this.tickBonus)
+            {
+                case 2:
+                    tickCost = 1;
+                    break;
+                case 4:
+                    tickCost = 2;
+                    break;
+                case 8:
+                    tickCost = 3;
+                    break;
+            }
+            this.bonusTicks -= tickCost;
+            this.bonusTicks = Math.max(0, this.bonusTicks);
         }
-        this.lastTickTime = Date.now();
         return {
-            tasks:tasks
+            tasks:tasks,
+            bonusTicks:this.bonusTicks
         }
     }
 
@@ -222,7 +241,9 @@ class Downlink extends EventListener
             runTime:this.runTime,
             researches:Research.categoryResearches,
             missionData:this.missionData,
-            autoPurchaseCPUs:this.autoPurchaseCPUs
+            autoPurchaseCPUs:this.autoPurchaseCPUs,
+            lastSaved:Date.now(),
+            bonusTicks:this.bonusTicks,
         };
         for(let company of this.companies)
         {
@@ -236,7 +257,8 @@ class Downlink extends EventListener
         Company.loadCompaniesFromJSON(json.companies);
         Research.loadJSON(json.researches);
 
-        let downlink = new Downlink();
+        let downlink = new Downlink(),
+            now = Date.now();
 
         downlink.currency = Decimal.fromString(json.currency);
         downlink.playerComputer = ComputerGenerator.fromJSON(json.playerComputer);
@@ -244,12 +266,29 @@ class Downlink extends EventListener
         downlink.lastTickTime = Date.now();
         downlink.missionData = json.missionData;
         downlink.autoPurchaseCPUs = json.autoPurchaseCPUs;
+        downlink.lastSaved = json.lastSaved?parseInt(json.lastSaved):now;
+        downlink.bonusTicks = json.bonusTicks?parseInt(json.bonusTicks):0;
 
+        let bonusTicksToAdd = Math.floor((now - downlink.lastSaved) / 10000);
+        if(bonusTicksToAdd && bonusTicksToAdd > 0)
+        {
+            downlink.addBonusTicks(bonusTicksToAdd);
+        }
 
         downlink.playerConnection = Connection.fromJSON(json.playerConnection);
         downlink.playerConnection.setStartingPoint(downlink.playerComputer);
 
         return downlink;
+    }
+
+    addBonusTicks(ticksToAdd)
+    {
+        this.bonusTicks += ticksToAdd;
+    }
+
+    setTickBonus(tickBonus)
+    {
+        this.tickBonus = tickBonus;
     }
 
     static getNew()
