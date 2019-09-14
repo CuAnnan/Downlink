@@ -3608,7 +3608,7 @@ class ConnectionStep extends EventListener
     }
 
 }
-ConnectionStep.distance = 25;
+ConnectionStep.distance = 20;
 ConnectionStep.states = {'pristine':'pristine','tracing':'tracing', 'traced':'traced'};
 ConnectionStep.events = {'stepTraced':'stepTraced'};
 
@@ -5394,6 +5394,11 @@ module.exports = EventListener;
                 $node.removeClass('affordable-part unaffordable-part').addClass(
                     (canAfford?'':'un')+'affordable-part'
                 );
+                if(!canAfford)
+                {
+                    $node.removeClass('chosenPart');
+                    this.chosenPart = null;
+                }
             });
         },
         getCPUIncreaseCost:function()
